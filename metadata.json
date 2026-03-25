@@ -1,0 +1,5 @@
+{
+  "name": "MTE Warehouse Management",
+  "description": "A modern, mobile-optimized warehouse management interface connected to ERPNext.",
+  "requestFramePermissions": []
+}
