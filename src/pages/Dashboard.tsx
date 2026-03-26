@@ -4,19 +4,21 @@ import { Package, Warehouse, ArrowLeftRight, AlertCircle, Plus, ArrowDownLeft, A
 import { Link } from 'react-router-dom';
 
 export function Dashboard() {
-  const [stats, setStats] = useState({ items: 0, warehouses: 0, recentTransfers: 0 });
+  const [stats, setStats] = useState({ items: 0, warehouses: 0, recentTransfers: 0, totalStock: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [items, warehouses, transfers] = await Promise.all([
+        const [items, warehouses, transfers, stockBalance] = await Promise.all([
           erpService.getItems(1),
           erpService.getWarehouses(),
           erpService.getStockEntries(5),
+          erpService.getStockBalance(''),
         ]);
-        setStats({ items: items.length > 0 ? '100+' : 0, warehouses: warehouses.length, recentTransfers: transfers.length });
+        const totalStock = (stockBalance || []).reduce((sum: number, b: any) => sum + (b.actual_qty || 0), 0);
+        setStats({ items: items.length > 0 ? '100+' : 0, warehouses: warehouses.length, recentTransfers: transfers.length, totalStock });
       } catch {
         setError('Không thể tải dữ liệu. Vui lòng kiểm tra kết nối.');
       } finally {
@@ -50,6 +52,7 @@ export function Dashboard() {
     { label: 'Vật tư', value: stats.items, icon: Package, color: 'bg-blue-50 text-blue-500' },
     { label: 'Kho', value: stats.warehouses, icon: Warehouse, color: 'bg-purple-50 text-purple-500' },
     { label: 'Nhập xuất', value: stats.recentTransfers, icon: ArrowLeftRight, color: 'bg-green-50 text-green-500' },
+    { label: 'Tổng tồn', value: stats.totalStock > 999 ? `${(stats.totalStock / 1000).toFixed(1)}K` : stats.totalStock, icon: Activity, color: 'bg-orange-50 text-orange-500' },
   ];
 
   const quickActions = [

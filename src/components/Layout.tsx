@@ -164,7 +164,7 @@ export function Layout() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden lg:ml-0">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden lg:ml-64">
         {/* Mobile Header */}
         <header className="lg:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 sticky top-0 z-30">
           <div className="flex items-center space-x-3">
@@ -184,7 +184,7 @@ export function Layout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 pb-24 lg:p-6 lg:pb-6">
+        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 pb-24 lg:px-6 lg:py-5 lg:pb-6">
           <div className="page-enter">
             <Outlet />
           </div>
