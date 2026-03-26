@@ -111,7 +111,7 @@ export function NewTransfer() {
   const isIssue = formData.stock_entry_type === 'Material Issue';
 
   return (
-    <div className="space-y-4 max-w-lg mx-auto">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center space-x-3 animate-slide-up">
         <Link to="/transfers" className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
