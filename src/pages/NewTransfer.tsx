@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { erpService } from '../services/api';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const entryTypes = [
+  { value: 'Material Transfer', label: 'Điều chuyển', icon: ArrowLeftRight },
+  { value: 'Material Receipt', label: 'Nhập kho', icon: ArrowDownLeft },
+  { value: 'Material Issue', label: 'Xuất kho', icon: ArrowUpRight },
+];
 
 export function NewTransfer() {
   const navigate = useNavigate();
@@ -10,26 +16,24 @@ export function NewTransfer() {
   const [error, setError] = useState('');
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
-  
+  const [loadingData, setLoadingData] = useState(true);
+
   const [formData, setFormData] = useState({
     stock_entry_type: 'Material Transfer',
     from_warehouse: '',
     to_warehouse: '',
-    items: [{ item_code: '', qty: 1, s_warehouse: '', t_warehouse: '' }]
+    allow_zero_valuation: true,
+    items: [{ item_code: '', qty: 1 }],
   });
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [whs, itms] = await Promise.all([
-          erpService.getWarehouses(),
-          erpService.getItems(100)
-        ]);
+        const [whs, itms] = await Promise.all([erpService.getWarehouses(), erpService.getItems(100)]);
         setWarehouses(whs.filter((w: any) => !w.is_group));
         setItems(itms);
-      } catch (err) {
-        setError('Failed to load required data');
-      }
+      } catch { setError('Không thể tải dữ liệu.'); }
+      finally { setLoadingData(false); }
     };
     loadData();
   }, []);
@@ -37,7 +41,7 @@ export function NewTransfer() {
   const handleAddItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, { item_code: '', qty: 1, s_warehouse: formData.from_warehouse, t_warehouse: formData.to_warehouse }]
+      items: [...formData.items, { item_code: '', qty: 1 }],
     });
   };
 
@@ -59,201 +63,224 @@ export function NewTransfer() {
     setError('');
 
     try {
-      // Format data for ERPNext
-      const payload = {
+      const isReceipt = formData.stock_entry_type === 'Material Receipt';
+      const isIssue = formData.stock_entry_type === 'Material Issue';
+
+      const payload: any = {
         stock_entry_type: formData.stock_entry_type,
-        from_warehouse: formData.from_warehouse || undefined,
-        to_warehouse: formData.to_warehouse || undefined,
-        items: formData.items.map(item => ({
+        from_warehouse: isReceipt ? undefined : (formData.from_warehouse || undefined),
+        to_warehouse: isIssue ? undefined : (formData.to_warehouse || undefined),
+        // Quan trọng: cho phép giá 0 ở cả document level
+        allow_zero_valuation_rate: formData.allow_zero_valuation ? 1 : 0,
+        items: formData.items.map((item) => ({
           item_code: item.item_code,
           qty: item.qty,
-          s_warehouse: formData.stock_entry_type === 'Material Receipt' ? undefined : (item.s_warehouse || formData.from_warehouse),
-          t_warehouse: formData.stock_entry_type === 'Material Issue' ? undefined : (item.t_warehouse || formData.to_warehouse),
-        }))
+          s_warehouse: isReceipt ? undefined : (formData.from_warehouse || undefined),
+          t_warehouse: isIssue ? undefined : (formData.to_warehouse || undefined),
+          // Quan trọng: cho phép giá 0 ở mỗi dòng vật tư
+          allow_zero_valuation_rate: formData.allow_zero_valuation ? 1 : 0,
+        })),
       };
 
       const result = await erpService.createStockEntry(payload);
-      // Automatically submit if created successfully
+
+      // Tự động duyệt
       await erpService.submitStockEntry(result.name);
       navigate('/transfers');
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || 'Failed to create stock entry');
+      const data = err.response?.data;
+      const msg = data?.message;
+      if (typeof msg === 'string') {
+        if (msg.includes('Valuation Rate')) {
+          setError('Giá trị tồn kho chưa được thiết lập. Vui lòng bật "Cho phép giá 0" hoặc thiết lập đơn giá trong mục vật tư.');
+        } else if (msg.includes('Missing')) {
+          setError('Thông tin còn thiếu. Vui lòng kiểm tra lại kho và vật tư.');
+        } else {
+          const clean = msg.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          setError(clean.substring(0, 200));
+        }
+      } else {
+        setError(data?.message?.exc?.[0] || 'Không thể tạo phiếu nhập xuất.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const isReceipt = formData.stock_entry_type === 'Material Receipt';
+  const isIssue = formData.stock_entry_type === 'Material Issue';
+
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <Link to="/transfers" className="mr-4 text-gray-500 hover:text-gray-700">
-            <ArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">New Stock Entry</h1>
+    <div className="space-y-4 max-w-lg mx-auto">
+      {/* Header */}
+      <div className="flex items-center space-x-3 animate-slide-up">
+        <Link to="/transfers" className="w-10 h-10 flex items-center justify-center rounded-2xl bg-white shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Tạo phiếu nhập xuất</h1>
+          <p className="text-xs text-gray-400">Tạo và duyệt phiếu mới</p>
         </div>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="bg-red-50 border-l-4 border-red-400 p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 animate-scale-in">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8 divide-y divide-gray-200">
-        <div className="space-y-6 sm:space-y-5 bg-white p-6 shadow sm:rounded-lg">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">General Details</h3>
-          </div>
-
-          <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:pt-5">
-            <label htmlFor="stock_entry_type" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-              Entry Type
-            </label>
-            <div className="mt-1 sm:mt-0 sm:col-span-2">
-              <select
-                id="stock_entry_type"
-                className="max-w-lg block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md py-2 border px-3"
-                value={formData.stock_entry_type}
-                onChange={(e) => setFormData({ ...formData, stock_entry_type: e.target.value })}
+      <form onSubmit={handleSubmit} className="space-y-3 animate-slide-up stagger-1">
+        {/* Loại phiếu */}
+        <div className="card p-3">
+          <p className="text-xs font-medium text-gray-500 mb-2 ml-1">Loại phiếu</p>
+          <div className="grid grid-cols-3 gap-2">
+            {entryTypes.map(type => (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => setFormData({ ...formData, stock_entry_type: type.value })}
+                className={`p-3 rounded-xl text-center transition-all ${formData.stock_entry_type === type.value ? 'bg-blue-50 border-2 border-blue-500' : 'bg-gray-50 border-2 border-transparent hover:bg-gray-100'}`}
               >
-                <option value="Material Transfer">Material Transfer</option>
-                <option value="Material Receipt">Material Receipt</option>
-                <option value="Material Issue">Material Issue</option>
-              </select>
-            </div>
+                <type.icon className={`w-5 h-5 mx-auto mb-1 ${formData.stock_entry_type === type.value ? 'text-blue-500' : 'text-gray-400'}`} />
+                <p className={`text-xs font-medium ${formData.stock_entry_type === type.value ? 'text-blue-700' : 'text-gray-500'}`}>{type.label}</p>
+              </button>
+            ))}
           </div>
+        </div>
 
-          {formData.stock_entry_type !== 'Material Receipt' && (
-            <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:pt-5">
-              <label htmlFor="from_warehouse" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Default Source Warehouse
-              </label>
-              <div className="mt-1 sm:mt-0 sm:col-span-2">
+        {/* Kho */}
+        {!isReceipt && (
+          <div className="card p-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-500 ml-1">Kho nguồn</label>
+              <div className="relative">
                 <select
-                  id="from_warehouse"
-                  className="max-w-lg block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md py-2 border px-3"
                   value={formData.from_warehouse}
                   onChange={(e) => setFormData({ ...formData, from_warehouse: e.target.value })}
+                  className="input-field !rounded-xl !bg-gray-50 !pr-10 appearance-none cursor-pointer"
                 >
-                  <option value="">Select Warehouse</option>
-                  {warehouses.map(w => (
-                    <option key={w.name} value={w.name}>{w.warehouse_name}</option>
-                  ))}
+                  <option value="">Chọn kho nguồn</option>
+                  {warehouses.map(w => <option key={w.name} value={w.name}>{w.warehouse_name}</option>)}
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {formData.stock_entry_type !== 'Material Issue' && (
-            <div className="sm:grid sm:grid-cols-3 sm:gap-4 sm:items-start sm:pt-5">
-              <label htmlFor="to_warehouse" className="block text-sm font-medium text-gray-700 sm:mt-px sm:pt-2">
-                Default Target Warehouse
-              </label>
-              <div className="mt-1 sm:mt-0 sm:col-span-2">
+        {!isIssue && (
+          <div className="card p-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-500 ml-1">Kho đích</label>
+              <div className="relative">
                 <select
-                  id="to_warehouse"
-                  className="max-w-lg block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:max-w-xs sm:text-sm border-gray-300 rounded-md py-2 border px-3"
                   value={formData.to_warehouse}
                   onChange={(e) => setFormData({ ...formData, to_warehouse: e.target.value })}
+                  className="input-field !rounded-xl !bg-gray-50 !pr-10 appearance-none cursor-pointer"
                 >
-                  <option value="">Select Warehouse</option>
-                  {warehouses.map(w => (
-                    <option key={w.name} value={w.name}>{w.warehouse_name}</option>
-                  ))}
+                  <option value="">Chọn kho đích</option>
+                  {warehouses.map(w => <option key={w.name} value={w.name}>{w.warehouse_name}</option>)}
                 </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="pt-8 space-y-6 sm:space-y-5 bg-white p-6 shadow sm:rounded-lg mt-6">
+        {/* Vật tư */}
+        <div className="card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Items</h3>
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add Row
+            <p className="text-sm font-semibold text-gray-900">Vật tư ({formData.items.length})</p>
+            <button type="button" onClick={handleAddItem} className="btn-ghost !text-xs !px-3 !py-1.5 !rounded-lg">
+              <Plus className="w-3.5 h-3.5 mr-1" /> Thêm dòng
             </button>
           </div>
 
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                  <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Qty</th>
-                  <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {formData.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <select
-                        required
-                        className="block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md py-2 border px-3"
-                        value={item.item_code}
-                        onChange={(e) => handleItemChange(index, 'item_code', e.target.value)}
-                      >
-                        <option value="">Select Item</option>
-                        {items.map(i => (
-                          <option key={i.name} value={i.name}>{i.item_name}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap">
-                      <input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        required
-                        className="block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300 rounded-md py-2 border px-3"
-                        value={item.qty}
-                        onChange={(e) => handleItemChange(index, 'qty', parseFloat(e.target.value))}
-                      />
-                    </td>
-                    <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        className="text-red-600 hover:text-red-900"
-                        disabled={formData.items.length === 1}
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-2">
+            {formData.items.map((item, index) => (
+              <div key={index} className="bg-gray-50 rounded-xl p-3 space-y-2 animate-scale-in">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-medium text-gray-400 ml-1">Vật tư</label>
+                  <div className="relative">
+                    <select
+                      required
+                      value={item.item_code}
+                      onChange={(e) => handleItemChange(index, 'item_code', e.target.value)}
+                      className="input-field !rounded-lg !bg-white !text-sm !pr-8 appearance-none cursor-pointer"
+                    >
+                      <option value="">Chọn vật tư</option>
+                      {items.map(i => <option key={i.name} value={i.name}>{i.item_name}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 space-y-1.5">
+                    <label className="text-[10px] font-medium text-gray-400 ml-1">Số lượng</label>
+                    <input
+                      type="number" min="0.01" step="0.01" required
+                      value={item.qty}
+                      onChange={(e) => handleItemChange(index, 'qty', parseFloat(e.target.value) || 0)}
+                      className="input-field !rounded-lg !bg-white !text-sm !py-2.5"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveItem(index)}
+                    disabled={formData.items.length === 1}
+                    className="mt-5 w-9 h-9 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="pt-5">
-          <div className="flex justify-end">
-            <Link
-              to="/transfers"
-              className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              disabled={loading}
-              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : 'Save & Submit'}
-            </button>
+        {/* Tùy chọn */}
+        {isReceipt && (
+          <div className="card p-4">
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.allow_zero_valuation}
+                onChange={(e) => setFormData({ ...formData, allow_zero_valuation: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded-lg accent-blue-600 mt-0.5"
+              />
+              <div>
+                <div className="text-sm font-medium text-gray-900">Cho phép giá trị 0</div>
+                <div className="text-xs text-gray-400 mt-0.5">
+                  Bỏ qua yêu cầu giá nhập kho. Phù hợp khi vật tư chưa có đơn giá.
+                </div>
+              </div>
+            </label>
           </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex space-x-3 pt-1 animate-slide-up stagger-2">
+          <Link to="/transfers" className="btn-secondary flex-1 !rounded-xl !py-3">Hủy</Link>
+          <button type="submit" disabled={loading} className="btn-primary flex-1 !rounded-xl !py-3">
+            {loading ? (
+              <span className="inline-flex items-center">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Đang lưu...
+              </span>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-1.5" />
+                Lưu & Duyệt
+              </>
+            )}
+          </button>
         </div>
       </form>
     </div>

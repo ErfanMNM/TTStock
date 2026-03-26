@@ -1,46 +1,81 @@
-import React, { useState, useEffect } from 'react';
-import { User, Server } from 'lucide-react';
+import React from 'react';
+import { Server, Package, Info } from 'lucide-react';
 
 export function Settings() {
-  const [user, setUser] = useState('');
-  const [fullName, setFullName] = useState('');
-
-  useEffect(() => {
-    setUser(localStorage.getItem('erp_user') || '');
-    setFullName(localStorage.getItem('erp_full_name') || '');
-  }, []);
-
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+    <div className="space-y-4">
+      <div className="animate-slide-up">
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Cài đặt</h1>
+        <p className="text-sm text-gray-400 mt-0.5">Thông tin kết nối và ứng dụng</p>
+      </div>
 
-      <div className="bg-white shadow sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-            <Server className="w-5 h-5 mr-2 text-blue-500" />
-            ERPNext Connection
-          </h3>
-          <div className="mt-2 max-w-xl text-sm text-gray-500">
-            <p>Connected to <strong>https://erp.mte.vn</strong></p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ERPNext Connection */}
+        <div className="card p-4 animate-slide-up stagger-1">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Server className="w-5 h-5 text-blue-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">Kết nối ERPNext</p>
+              <p className="text-xs text-gray-400">Quản lý kết nối hệ thống</p>
+            </div>
+            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
           </div>
-          
-          <div className="mt-6 border-t border-gray-200 pt-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 flex items-center">
-              <User className="w-5 h-5 mr-2 text-blue-500" />
-              Account Information
-            </h3>
-            <dl className="mt-4 grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Username / Email</dt>
-                <dd className="mt-1 text-sm text-gray-900">{user}</dd>
-              </div>
-              <div className="sm:col-span-1">
-                <dt className="text-sm font-medium text-gray-500">Full Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{fullName}</dd>
-              </div>
-            </dl>
+          <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-xs text-gray-500">Server</span>
+              <span className="text-xs font-medium text-gray-900">https://erp.mte.vn</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs text-gray-500">Trạng thái</span>
+              <span className="text-xs font-medium text-green-600">Đã kết nối</span>
+            </div>
           </div>
         </div>
+
+        {/* App Info */}
+        <div className="card p-4 animate-slide-up stagger-2">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Package className="w-5 h-5 text-purple-500" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">Kho Tân Tiến</p>
+              <p className="text-xs text-gray-400">TTStock v1.0</p>
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+            <div className="flex justify-between">
+              <span className="text-xs text-gray-500">Ứng dụng</span>
+              <span className="text-xs font-medium text-gray-900">Quản lý Kho Tân Tiến</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs text-gray-500">Phiên bản</span>
+              <span className="text-xs font-medium text-gray-900">1.0.0</span>
+            </div>
+          </div>
+        </div>
+
+        {/* About */}
+        <div className="card p-4 animate-slide-up stagger-3">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Info className="w-5 h-5 text-gray-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">Về ứng dụng</p>
+              <p className="text-xs text-gray-400">Thông tin chung</p>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3">
+            Ứng dụng quản lý kho hàng kết nối ERPNext, tối ưu cho thiết bị di động và máy tính.
+          </p>
+        </div>
+      </div>
+
+      <div className="text-center animate-slide-up">
+        <p className="text-xs text-gray-300">Kho Tân Tiến • TTStock v1.0</p>
       </div>
     </div>
   );

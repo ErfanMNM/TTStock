@@ -1,5 +1,5 @@
 {
-  "name": "MTE Warehouse Management",
-  "description": "A modern, mobile-optimized warehouse management interface connected to ERPNext.",
+  "name": "Quản Lý Kho Tân Tiến - TTStock",
+  "description": "Ứng dụng quản lý kho hàng kết nối ERPNext, tối ưu cho thiết bị di động.",
   "requestFramePermissions": []
 }

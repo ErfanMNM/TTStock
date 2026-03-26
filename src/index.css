@@ -1,1 +1,204 @@
 @import "tailwindcss";
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Google Sans', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  ::selection {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #bdc1c6;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .card:hover {
+    @apply shadow-md;
+  }
+
+  .card-press:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-medium text-white bg-blue-600 shadow-sm;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    @apply bg-blue-700 shadow-md;
+  }
+
+  .btn-primary:active {
+    @apply bg-blue-800 scale-95;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-medium text-gray-700 bg-gray-100;
+    transition: all 0.2s ease;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-gray-200;
+  }
+
+  .btn-secondary:active {
+    @apply bg-gray-300 scale-95;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium text-gray-600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    @apply bg-gray-100 text-gray-900;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-900 placeholder-gray-400 outline-none;
+    transition: all 0.2s ease;
+  }
+
+  .input-field:focus {
+    @apply border-blue-500 bg-white shadow-sm ring-2 ring-blue-500/20;
+  }
+
+  .chip {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .chip-blue {
+    @apply bg-blue-50 text-blue-700;
+  }
+
+  .chip-green {
+    @apply bg-green-50 text-green-700;
+  }
+
+  .chip-yellow {
+    @apply bg-yellow-50 text-yellow-700;
+  }
+
+  .chip-red {
+    @apply bg-red-50 text-red-700;
+  }
+
+  .chip-gray {
+    @apply bg-gray-100 text-gray-600;
+  }
+
+  .fab {
+    @apply fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center z-40;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .fab:hover {
+    @apply bg-blue-700 shadow-xl scale-110;
+  }
+
+  .fab:active {
+    @apply scale-95;
+  }
+
+  .page-enter {
+    animation: pageEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .list-item {
+    @apply flex items-center px-4 py-3 hover:bg-gray-50 active:bg-gray-100 rounded-xl transition-colors cursor-pointer;
+  }
+
+  .divider {
+    @apply border-t border-gray-100;
+  }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease;
+}
+
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }

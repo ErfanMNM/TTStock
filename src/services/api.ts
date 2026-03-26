@@ -1,9 +1,7 @@
 import axios from 'axios';
 
-const BASE_URL = 'https://erp.mte.vn';
-
 export const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: '', // Proxy via Vite dev server (see vite.config.ts)
   withCredentials: true, // Required to send and receive session cookies
   headers: {
     'Content-Type': 'application/json',
@@ -21,15 +19,33 @@ export const erpService = {
     }
     return response.data;
   },
-  
+
   logout: async () => {
     try {
       await api.post('/api/method/logout');
     } catch (e) {
-      console.error('Logout failed', e);
+      console.error('Đăng xuất thất bại', e);
     }
     localStorage.removeItem('erp_user');
     localStorage.removeItem('erp_full_name');
+    localStorage.removeItem('erp_user_info');
+  },
+
+  // User Profile
+  getUserInfo: async () => {
+    const usr = localStorage.getItem('erp_user') || '';
+    const response = await api.get('/api/resource/User', {
+      params: {
+        filters: `[["User", "email", "=", "${usr}"]]`,
+        fields: '["name", "full_name", "user_type", "enabled", "creation", "last_login", "email"]',
+        limit_page_length: 1,
+      }
+    });
+    const userData = response.data.data?.[0];
+    if (userData) {
+      localStorage.setItem('erp_user_info', JSON.stringify(userData));
+    }
+    return userData;
   },
 
   // Items
@@ -45,9 +61,98 @@ export const erpService = {
     });
     return response.data.data;
   },
-  
+
   getItemDetails: async (itemName: string) => {
-    const response = await api.get(`/api/resource/Item/${encodeURIComponent(itemName)}`);
+    const response = await api.get(`/api/resource/Item/${encodeURIComponent(itemName)}`, {
+      params: {
+        fields: JSON.stringify([
+          "name", "item_name", "item_code", "item_group", "item_group_name",
+          "stock_uom", "unit", "description", "image",
+          "is_stock_item", "maintain_stock", "disabled",
+          "brand", "manufacturer", "item_defaults",
+          "opening_stock", "valuation_rate", "standard_rate",
+          "last_purchase_rate", "std_cost",
+          "weight_per_unit", "weight_uom",
+          "shelf_life_in_days", "end_of_life",
+          "warranty_period", "origin",
+          "gst_hsn_code", "icd_code",
+          "is_fixed_asset", "is_purchase_item", "is_sales_item",
+          "is_sub_contracted_item", "inspection_required_before_delivery",
+          "inspection_required_before_purchase",
+          "allow_preorders_artifacts", "enable_deferred_expense",
+          "enable_deferred_revenue", "customs_tariff_number",
+          "section", "chapter",
+          "creation", "modified", "owner", "modified_by",
+        ]),
+      }
+    });
+    return response.data.data;
+  },
+
+  // Item Groups
+  getItemGroups: async () => {
+    try {
+      const response = await api.get(`/api/resource/Item Group`, {
+        params: {
+          fields: '["name", "item_group_name", "parent_item_group"]',
+          limit_page_length: 100,
+        }
+      });
+      return response.data.data || [];
+    } catch (err) {
+      console.error('Lỗi getItemGroups:', err);
+      return [];
+    }
+  },
+
+  // Units of Measure
+  getUOMs: async () => {
+    try {
+      // Thử UOM trước (ERPNext v14+)
+      let response = await api.get(`/api/resource/UOM`, {
+        params: {
+          fields: '["name", "uom_name"]',
+          limit_page_length: 100,
+        }
+      });
+      if (!response.data.data || response.data.data.length === 0) {
+        // Thử gọi method thay thế
+        response = await api.get('/api/method/frappe.client.get_list', {
+          params: {
+            doctype: 'UOM',
+            fields: '["name"]',
+            limit: 100,
+          }
+        });
+        return response.data.message?.map((u: any) => ({ name: u.name })) || [];
+      }
+      return response.data.data || [];
+    } catch (err) {
+      console.error('Lỗi getUOMs:', err);
+      // Fallback: trả danh sách UOM phổ biến
+      return [
+        { name: 'Unit' },
+        { name: 'Nos' },
+        { name: 'Kg' },
+        { name: 'g' },
+        { name: 'L' },
+        { name: 'ml' },
+        { name: 'm' },
+        { name: 'cm' },
+        { name: 'mm' },
+        { name: 'pcs' },
+        { name: 'box' },
+        { name: 'roll' },
+        { name: 'pair' },
+        { name: 'set' },
+        { name: 'kg' },
+      ];
+    }
+  },
+
+  // Create Item
+  createItem: async (data: any) => {
+    const response = await api.post('/api/resource/Item', data);
     return response.data.data;
   },
 
@@ -67,10 +172,10 @@ export const erpService = {
     const filters: any[] = [];
     if (warehouse) filters.push(["Bin", "warehouse", "=", warehouse]);
     if (itemCode) filters.push(["Bin", "item_code", "=", itemCode]);
-    
+
     const response = await api.get(`/api/resource/Bin`, {
       params: {
-        fields: '["name", "item_code", "warehouse", "actual_qty", "reserved_qty", "projected_qty"]',
+        fields: '["name", "item_code", "warehouse", "actual_qty", "reserved_qty", "projected_qty", "stock_value"]',
         filters: JSON.stringify(filters),
         limit_page_length: 100,
       }
@@ -95,7 +200,7 @@ export const erpService = {
     const response = await api.post(`/api/resource/Stock Entry`, data);
     return response.data.data;
   },
-  
+
   // Submit Stock Entry
   submitStockEntry: async (name: string) => {
     const response = await api.put(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
@@ -103,7 +208,7 @@ export const erpService = {
     });
     return response.data.data;
   },
-  
+
   // Ping to check connection
   ping: async () => {
     const response = await api.get('/api/method/ping');
