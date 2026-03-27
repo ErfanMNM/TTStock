@@ -14,6 +14,26 @@ import { NewItem } from './pages/NewItem';
 import { Stock } from './pages/Stock';
 import { Transfers } from './pages/Transfers';
 import { NewTransfer } from './pages/NewTransfer';
+import { MaterialRequests } from './pages/MaterialRequests';
+import { BOMs } from './pages/BOMs';
+import { DeliveryNotes } from './pages/DeliveryNotes';
+import { PurchaseReceipts } from './pages/PurchaseReceipts';
+import { PickList } from './pages/PickList';
+import { StockReconciliation } from './pages/StockReconciliation';
+import { StockAnalytics } from './pages/StockAnalytics';
+import { ItemGroups } from './pages/ItemGroups';
+import { Brands } from './pages/Brands';
+import { Warehouses } from './pages/Warehouses';
+import { UOMs } from './pages/UOMs';
+import { SerialNos } from './pages/SerialNos';
+import { BatchNos } from './pages/BatchNos';
+import { StockLedger } from './pages/StockLedger';
+import { StockBalanceReport } from './pages/StockBalanceReport';
+import { StockProjectedQty } from './pages/StockProjectedQty';
+import { StockAgeing } from './pages/StockAgeing';
+import { WarehouseWiseStock } from './pages/WarehouseWiseStock';
+import { ItemShortageReport } from './pages/ItemShortageReport';
+import { StockSettings } from './pages/StockSettings';
 import { Settings } from './pages/Settings';
 import { Profile } from './pages/Profile';
 
@@ -47,6 +67,26 @@ export default function App() {
           <Route path="transfers" element={<Transfers />} />
           <Route path="transfers/new" element={<NewTransfer />} />
           <Route path="stock/receive" element={<NewTransfer />} />
+          <Route path="material-requests" element={<MaterialRequests />} />
+          <Route path="boms" element={<BOMs />} />
+          <Route path="delivery-notes" element={<DeliveryNotes />} />
+          <Route path="purchase-receipts" element={<PurchaseReceipts />} />
+          <Route path="pick-list" element={<PickList />} />
+          <Route path="stock-reconciliation" element={<StockReconciliation />} />
+          <Route path="stock-analytics" element={<StockAnalytics />} />
+          <Route path="item-groups" element={<ItemGroups />} />
+          <Route path="brands" element={<Brands />} />
+          <Route path="warehouses" element={<Warehouses />} />
+          <Route path="uoms" element={<UOMs />} />
+          <Route path="serial-nos" element={<SerialNos />} />
+          <Route path="batch-nos" element={<BatchNos />} />
+          <Route path="stock-ledger" element={<StockLedger />} />
+          <Route path="stock-balance-report" element={<StockBalanceReport />} />
+          <Route path="stock-projected-qty" element={<StockProjectedQty />} />
+          <Route path="stock-ageing" element={<StockAgeing />} />
+          <Route path="warehouse-wise-stock" element={<WarehouseWiseStock />} />
+          <Route path="item-shortage-report" element={<ItemShortageReport />} />
+          <Route path="stock-settings" element={<StockSettings />} />
           <Route path="settings" element={<Settings />} />
           <Route path="profile" element={<Profile />} />
         </Route>

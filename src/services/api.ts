@@ -236,5 +236,66 @@ export const erpService = {
   ping: async () => {
     const response = await api.get('/api/method/ping');
     return response.data;
-  }
+  },
+
+  // Material Request
+  getMaterialRequests: async (limit = 20) => {
+    const response = await api.get(`/api/resource/Material Request`, {
+      params: {
+        fields: '["name", "material_request_type", "transaction_date", "status", "docstatus", "per_received", "per_ordered"]',
+        order_by: 'creation desc',
+        limit_page_length: limit,
+      }
+    });
+    return response.data.data;
+  },
+
+  getMaterialRequestDetails: async (name: string) => {
+    const response = await api.get(`/api/resource/Material Request/${encodeURIComponent(name)}`);
+    return response.data.data;
+  },
+
+  createMaterialRequest: async (data: any) => {
+    const response = await api.post('/api/resource/Material Request', data);
+    return response.data.data;
+  },
+
+  // BOM (Bill of Materials)
+  getBOMs: async (limit = 20) => {
+    const response = await api.get(`/api/resource/BOM`, {
+      params: {
+        fields: '["name", "item", "item_name", "quantity", "uom", "docstatus", "is_active", "is_default"]',
+        order_by: 'creation desc',
+        limit_page_length: limit,
+      }
+    });
+    return response.data.data;
+  },
+
+  getBOMDetails: async (name: string) => {
+    const response = await api.get(`/api/resource/BOM/${encodeURIComponent(name)}`);
+    return response.data.data;
+  },
+
+  // Delivery Note
+  getDeliveryNotes: async (limit = 20) => {
+    const response = await api.get(`/api/resource/Delivery Note`, {
+      params: {
+        fields: '["name", "customer", "posting_date", "status", "docstatus", "per_delivered", "grand_total"]',
+        order_by: 'creation desc',
+        limit_page_length: limit,
+      }
+    });
+    return response.data.data;
+  },
+
+  getDeliveryNoteDetails: async (name: string) => {
+    const response = await api.get(`/api/resource/Delivery Note/${encodeURIComponent(name)}`);
+    return response.data.data;
+  },
+
+  createDeliveryNote: async (data: any) => {
+    const response = await api.post('/api/resource/Delivery Note', data);
+    return response.data.data;
+  },
 };

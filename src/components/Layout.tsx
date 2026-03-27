@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
-import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Bell } from 'lucide-react';
+import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Settings, ClipboardList, FileText, Truck, PackageSearch, ListTodo, Scale, BarChart3, Folders, Tag, Ruler, Hash, Layers, BookOpen, Wallet, TrendingUp, Clock, MapPin, AlertTriangle, Settings2, ChevronDown, Building2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { erpService } from '../services/api';
 
@@ -9,6 +9,26 @@ const navItems = [
   { name: 'Vật tư', path: '/items', icon: Package },
   { name: 'Tồn kho', path: '/stock', icon: Warehouse },
   { name: 'Nhập xuất', path: '/transfers', icon: ArrowLeftRight },
+  { name: 'Yêu cầu VT', path: '/material-requests', icon: ClipboardList },
+  { name: 'Định mức BOM', path: '/boms', icon: FileText },
+  { name: 'Giao hàng', path: '/delivery-notes', icon: Truck },
+  { name: 'Nhập mua', path: '/purchase-receipts', icon: PackageSearch },
+  { name: 'Danh sách chọn', path: '/pick-list', icon: ListTodo },
+  { name: 'Đối soát kho', path: '/stock-reconciliation', icon: Scale },
+  { name: 'Phân tích kho', path: '/stock-analytics', icon: BarChart3 },
+  { name: 'Nhóm vật tư', path: '/item-groups', icon: Folders },
+  { name: 'Thương hiệu', path: '/brands', icon: Tag },
+  { name: 'Kho hàng', path: '/warehouses', icon: Building2 },
+  { name: 'Đơn vị tính', path: '/uoms', icon: Ruler },
+  { name: 'Số serial', path: '/serial-nos', icon: Hash },
+  { name: 'Số lô', path: '/batch-nos', icon: Layers },
+  { name: 'Sổ kho', path: '/stock-ledger', icon: BookOpen },
+  { name: 'Báo cáo tồn kho', path: '/stock-balance-report', icon: Wallet },
+  { name: 'Tồn dự kiến', path: '/stock-projected-qty', icon: TrendingUp },
+  { name: 'Tuổi tồn kho', path: '/stock-ageing', icon: Clock },
+  { name: 'Tồn theo kho', path: '/warehouse-wise-stock', icon: MapPin },
+  { name: 'Thiếu hàng', path: '/item-shortage-report', icon: AlertTriangle },
+  { name: 'Cài đặt kho', path: '/stock-settings', icon: Settings2 },
 ];
 
 const bottomNavItems = [
@@ -89,7 +109,7 @@ export function Layout() {
                 isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               )}
             >
-              <Bell className="w-5 h-5 mr-3 flex-shrink-0" />
+              <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
               Cài đặt
             </NavLink>
             <button
@@ -152,7 +172,7 @@ export function Layout() {
               "flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
               isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             )}>
-              <Bell className="w-5 h-5 mr-3 flex-shrink-0" />
+              <Settings className="w-5 h-5 mr-3 flex-shrink-0" />
               Cài đặt
             </NavLink>
             <button onClick={handleLogout} className="flex items-center w-full px-3 py-2.5 text-sm font-medium text-red-500 rounded-xl hover:bg-red-50 transition-all duration-200">
