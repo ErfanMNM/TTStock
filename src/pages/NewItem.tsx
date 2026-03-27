@@ -195,30 +195,34 @@ export function NewItem() {
         {/* Card: Tùy chọn */}
         <div className="card p-4 space-y-3">
           <h2 className="text-sm font-semibold text-gray-900">Tùy chọn tồn kho</h2>
-          <label className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.is_stock_item === 1}
-              onChange={(e) => handleChange('is_stock_item', e.target.checked ? 1 : 0)}
-              className="w-5 h-5 text-blue-600 rounded-lg accent-blue-600"
-            />
+          <div className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
             <div>
               <div className="text-sm font-medium text-gray-900">Là vật tư tồn kho</div>
               <div className="text-xs text-gray-400">Vật tư được theo dõi số lượng trong kho</div>
             </div>
-          </label>
-          <label className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
-            <input
-              type="checkbox"
-              checked={formData.maintain_stock === 1}
-              onChange={(e) => handleChange('maintain_stock', e.target.checked ? 1 : 0)}
-              className="w-5 h-5 text-blue-600 rounded-lg accent-blue-600"
-            />
+            <label className="ios-switch flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={formData.is_stock_item === 1}
+                onChange={(e) => handleChange('is_stock_item', e.target.checked ? 1 : 0)}
+              />
+              <span className="ios-switch-slider" />
+            </label>
+          </div>
+          <div className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer">
             <div>
               <div className="text-sm font-medium text-gray-900">Theo dõi tồn kho</div>
               <div className="text-xs text-gray-400">Tự động cập nhật số lượng khi nhập/xuất</div>
             </div>
-          </label>
+            <label className="ios-switch flex-shrink-0">
+              <input
+                type="checkbox"
+                checked={formData.maintain_stock === 1}
+                onChange={(e) => handleChange('maintain_stock', e.target.checked ? 1 : 0)}
+              />
+              <span className="ios-switch-slider" />
+            </label>
+          </div>
         </div>
 
         {/* Actions */}

@@ -175,12 +175,35 @@ export const erpService = {
 
     const response = await api.get(`/api/resource/Bin`, {
       params: {
-        fields: '["name", "item_code", "warehouse", "actual_qty", "reserved_qty", "projected_qty", "stock_value"]',
+        fields: '["name", "item_code", "warehouse", "actual_qty", "reserved_qty", "projected_qty", "stock_value", "stock_uom"]',
         filters: JSON.stringify(filters),
         limit_page_length: 100,
       }
     });
-    return response.data.data;
+    const bins = response.data.data;
+
+    // Gộp thêm item_name, item_group từ Item doctype
+    const uniqueCodes = [...new Set(bins.map((b: any) => b.item_code))];
+    if (uniqueCodes.length > 0) {
+      const itemFilters = uniqueCodes.map((code: string) => ["Item", "name", "=", code]);
+      const itemRes = await api.get(`/api/resource/Item`, {
+        params: {
+          fields: '["name", "item_name", "item_group"]',
+          filters: JSON.stringify(itemFilters),
+          limit_page_length: 100,
+        }
+      });
+      const itemMap: Record<string, any> = {};
+      for (const item of itemRes.data.data) {
+        itemMap[item.name] = item;
+      }
+      return bins.map((bin: any) => ({
+        ...bin,
+        item_name: itemMap[bin.item_code]?.item_name || null,
+        item_group: itemMap[bin.item_code]?.item_group || null,
+      }));
+    }
+    return bins;
   },
 
   // Stock Entries (Receipts, Issues, Transfers)

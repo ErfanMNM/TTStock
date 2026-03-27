@@ -245,19 +245,21 @@ export function NewTransfer() {
         {/* Tùy chọn */}
         {isReceipt && (
           <div className="card p-4">
-            <label className="flex items-start space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.allow_zero_valuation}
-                onChange={(e) => setFormData({ ...formData, allow_zero_valuation: e.target.checked })}
-                className="w-5 h-5 text-blue-600 rounded-lg accent-blue-600 mt-0.5"
-              />
-              <div>
+            <label className="flex items-start justify-between cursor-pointer">
+              <div className="pr-4">
                 <div className="text-sm font-medium text-gray-900">Cho phép giá trị 0</div>
                 <div className="text-xs text-gray-400 mt-0.5">
                   Bỏ qua yêu cầu giá nhập kho. Phù hợp khi vật tư chưa có đơn giá.
                 </div>
               </div>
+              <label className="ios-switch mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={formData.allow_zero_valuation}
+                  onChange={(e) => setFormData({ ...formData, allow_zero_valuation: e.target.checked })}
+                />
+                <span className="ios-switch-slider" />
+              </label>
             </label>
           </div>
         )}

@@ -145,6 +145,105 @@
   .divider {
     @apply border-t border-gray-100;
   }
+
+  /* iOS-style Switch */
+  .ios-switch {
+    position: relative;
+    width: 52px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+
+  .ios-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .ios-switch-slider {
+    position: absolute;
+    inset: 0;
+    background-color: #e5e7eb;
+    border-radius: 32px;
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+  }
+
+  .ios-switch-slider::before {
+    content: '';
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    left: 2px;
+    top: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .ios-switch input:checked + .ios-switch-slider {
+    background-color: #34c759;
+  }
+
+  .ios-switch input:checked + .ios-switch-slider::before {
+    transform: translateX(20px);
+  }
+
+  .ios-switch input:focus-visible + .ios-switch-slider {
+    outline: 2px solid #34c759;
+    outline-offset: 2px;
+  }
+
+  /* Table styles */
+  .table-container {
+    @apply w-full overflow-x-auto rounded-2xl;
+  }
+
+  .data-table {
+    @apply w-full text-sm;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .data-table thead th {
+    @apply text-xs font-semibold text-gray-500 uppercase tracking-wider;
+    padding: 10px 14px;
+    background: #f9fafb;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .data-table thead th:first-child {
+    @apply rounded-tl-2xl;
+  }
+
+  .data-table thead th:last-child {
+    @apply rounded-tr-2xl;
+  }
+
+  .data-table tbody tr {
+    @apply border-b border-gray-50 last:border-0;
+    transition: background-color 0.15s ease;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-gray-50/50;
+  }
+
+  .data-table tbody td {
+    @apply text-sm text-gray-800;
+    padding: 12px 14px;
+  }
+
+  .data-table tbody td:first-child {
+    @apply rounded-l-xl;
+  }
+
+  .data-table tbody td:last-child {
+    @apply rounded-r-xl;
+  }
 }
 
 @keyframes pageEnter {

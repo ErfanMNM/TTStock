@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { erpService } from '../services/api';
-import { Warehouse, Package, Filter, ChevronDown } from 'lucide-react';
+import { Warehouse, Package, Filter, ChevronDown, Search } from 'lucide-react';
 
 export function Stock() {
   const [stock, setStock] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedWarehouse, setSelectedWarehouse] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const init = async () => {
@@ -35,17 +36,36 @@ export function Stock() {
 
   const totalQty = stock.reduce((sum, b) => sum + (b.actual_qty || 0), 0);
 
+  const filtered = stock.filter((b) =>
+    b.item_code?.toLowerCase().includes(search.toLowerCase()) ||
+    b.item_name?.toLowerCase().includes(search.toLowerCase()) ||
+    b.item_group?.toLowerCase().includes(search.toLowerCase()) ||
+    b.warehouse?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-4">
       {/* Header */}
       <div className="animate-slide-up">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Tồn kho</h1>
-        <p className="text-xs lg:text-sm text-gray-400 mt-0.5">Tổng: {totalQty.toLocaleString()} đơn vị</p>
+        <p className="text-xs lg:text-sm text-gray-400 mt-0.5">Tổng: {totalQty.toLocaleString()} đơn vị · {filtered.length} dòng</p>
       </div>
 
-      {/* Warehouse Filter */}
-      <div className="card p-3 animate-slide-up stagger-1">
-        <div className="relative">
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2 animate-slide-up stagger-1">
+        <div className="relative flex-1">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+            <Search className="w-4 h-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm mã vật tư, kho..."
+            className="input-field !rounded-xl !bg-gray-50 !pl-10"
+          />
+        </div>
+        <div className="relative sm:w-52 flex-shrink-0">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
             <Filter className="w-4 h-4 text-gray-400" />
           </div>
@@ -63,48 +83,56 @@ export function Stock() {
         </div>
       </div>
 
-      {/* Content */}
+      {/* Table */}
       <div className="animate-slide-up stagger-2">
         {loading ? (
           <div className="flex items-center justify-center h-40">
             <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
-        ) : stock.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Package className="w-8 h-8 text-gray-300" />
             </div>
-            <p className="text-sm font-medium text-gray-500">Không có dữ liệu tồn kho.</p>
+            <p className="text-sm font-medium text-gray-500">
+              {search ? 'Không tìm thấy kết quả phù hợp.' : 'Không có dữ liệu tồn kho.'}
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {stock.map((bin, i) => (
-              <div key={bin.name} className="card p-4 animate-slide-up" style={{ animationDelay: `${i * 20}ms` }}>
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Package className="w-5 h-5 text-blue-500" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{bin.item_code}</p>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-bold text-blue-600">{bin.actual_qty}</p>
-                        <p className="text-[10px] text-gray-400">tồn thực tế</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <div className="w-3.5 h-3.5 bg-gray-100 rounded flex items-center justify-center">
-                        <Warehouse className="w-2.5 h-2.5 text-gray-400" />
-                      </div>
-                      <p className="text-xs text-gray-400 truncate">{bin.warehouse}</p>
-                    </div>
-                    {bin.reserved_qty > 0 && (
-                      <p className="text-xs text-orange-500 mt-1">Đã đặt: {bin.reserved_qty}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="card overflow-hidden">
+            <div className="table-container">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className="text-left">Mã vật tư</th>
+                    <th className="text-left">Tên vật tư</th>
+                    <th className="text-left">Nhóm</th>
+                    <th className="text-left">Kho</th>
+                    <th className="text-right">Tồn thực tế</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((bin) => (
+                    <tr key={bin.name}>
+                      <td className="font-medium">{bin.item_code}</td>
+                      <td className="text-gray-600 truncate max-w-[200px]">{bin.item_name || '—'}</td>
+                      <td>
+                        <span className="chip chip-gray !text-xs">{bin.item_group || '—'}</span>
+                      </td>
+                      <td>
+                        <div className="flex items-center space-x-1.5">
+                          <div className="w-5 h-5 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                            <Warehouse className="w-3 h-3 text-gray-400" />
+                          </div>
+                          <span className="truncate">{bin.warehouse}</span>
+                        </div>
+                      </td>
+                      <td className="text-right font-semibold text-blue-600">{bin.actual_qty?.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
