@@ -133,6 +133,20 @@ export function ItemDetail() {
         </Link>
       </div>
 
+      {/* Mô tả - full width */}
+      {item.description && (
+        <div className="card p-4 animate-slide-up stagger-2">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+            <FileText className="w-4 h-4 mr-2 text-gray-400" />
+            Mô tả
+          </h3>
+          <div
+            className="prose prose-sm max-w-none text-sm text-gray-700"
+            dangerouslySetInnerHTML={{ __html: item.description }}
+          />
+        </div>
+      )}
+
       {/* Info sections - responsive 2 columns on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Tổng quan */}
@@ -166,7 +180,6 @@ export function ItemDetail() {
             <InfoRow icon={Tag} label="Tên vật tư" value={item.item_name} />
             <InfoRow icon={Grid3X3} label="Nhóm vật tư" value={item.item_group_name || item.item_group} />
             <InfoRow icon={Ruler} label="Đơn vị tính" value={item.stock_uom || 'Unit'} />
-            {item.description && <InfoRow icon={FileText} label="Mô tả" value={item.description} multiline />}
             {item.brand && <InfoRow icon={Tag} label="Thương hiệu" value={item.brand} />}
             {item.manufacturer && <InfoRow icon={Building} label="Nhà sản xuất" value={item.manufacturer} />}
           </div>

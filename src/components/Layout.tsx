@@ -1,34 +1,70 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
-import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Settings, ClipboardList, FileText, Truck, PackageSearch, ListTodo, Scale, BarChart3, Folders, Tag, Ruler, Hash, Layers, BookOpen, Wallet, TrendingUp, Clock, MapPin, AlertTriangle, Settings2, ChevronDown, Building2 } from 'lucide-react';
+import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
+import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Settings, ClipboardList, FileText, PackageSearch, ListTodo, Scale, BarChart3, Folders, Tag, Ruler, Hash, Layers, BookOpen, Wallet, TrendingUp, Clock, MapPin, AlertTriangle, Settings2, ChevronDown, Building2, LayoutDashboard, Package2, Truck as TruckIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { erpService } from '../services/api';
 
-const navItems = [
-  { name: 'Tổng quan', path: '/', icon: Home },
-  { name: 'Vật tư', path: '/items', icon: Package },
-  { name: 'Tồn kho', path: '/stock', icon: Warehouse },
-  { name: 'Nhập xuất', path: '/transfers', icon: ArrowLeftRight },
-  { name: 'Yêu cầu VT', path: '/material-requests', icon: ClipboardList },
-  { name: 'Định mức BOM', path: '/boms', icon: FileText },
-  { name: 'Giao hàng', path: '/delivery-notes', icon: Truck },
-  { name: 'Nhập mua', path: '/purchase-receipts', icon: PackageSearch },
-  { name: 'Danh sách chọn', path: '/pick-list', icon: ListTodo },
-  { name: 'Đối soát kho', path: '/stock-reconciliation', icon: Scale },
-  { name: 'Phân tích kho', path: '/stock-analytics', icon: BarChart3 },
-  { name: 'Nhóm vật tư', path: '/item-groups', icon: Folders },
-  { name: 'Thương hiệu', path: '/brands', icon: Tag },
-  { name: 'Kho hàng', path: '/warehouses', icon: Building2 },
-  { name: 'Đơn vị tính', path: '/uoms', icon: Ruler },
-  { name: 'Số serial', path: '/serial-nos', icon: Hash },
-  { name: 'Số lô', path: '/batch-nos', icon: Layers },
-  { name: 'Sổ kho', path: '/stock-ledger', icon: BookOpen },
-  { name: 'Báo cáo tồn kho', path: '/stock-balance-report', icon: Wallet },
-  { name: 'Tồn dự kiến', path: '/stock-projected-qty', icon: TrendingUp },
-  { name: 'Tuổi tồn kho', path: '/stock-ageing', icon: Clock },
-  { name: 'Tồn theo kho', path: '/warehouse-wise-stock', icon: MapPin },
-  { name: 'Thiếu hàng', path: '/item-shortage-report', icon: AlertTriangle },
-  { name: 'Cài đặt kho', path: '/stock-settings', icon: Settings2 },
+const navGroups = [
+  {
+    label: 'Tổng quan',
+    icon: LayoutDashboard,
+    items: [
+      { name: 'Dashboard', path: '/', icon: Home },
+    ],
+  },
+  {
+    label: 'Kho vật tư',
+    icon: Warehouse,
+    items: [
+      { name: 'Vật tư', path: '/items', icon: Package },
+      { name: 'Tồn kho', path: '/stock', icon: Package2 },
+      { name: 'Nhập xuất', path: '/transfers', icon: ArrowLeftRight },
+      { name: 'Yêu cầu VT', path: '/material-requests', icon: ClipboardList },
+      { name: 'Định mức BOM', path: '/boms', icon: FileText },
+    ],
+  },
+  {
+    label: 'Nghiệp vụ',
+    icon: TruckIcon,
+    items: [
+      { name: 'Giao hàng', path: '/delivery-notes', icon: TruckIcon },
+      { name: 'Nhập mua', path: '/purchase-receipts', icon: PackageSearch },
+      { name: 'Danh sách chọn', path: '/pick-list', icon: ListTodo },
+      { name: 'Đối soát kho', path: '/stock-reconciliation', icon: Scale },
+    ],
+  },
+  {
+    label: 'Báo cáo',
+    icon: BarChart3,
+    items: [
+      { name: 'Phân tích kho', path: '/stock-analytics', icon: BarChart3 },
+      { name: 'Sổ kho', path: '/stock-ledger', icon: BookOpen },
+      { name: 'Báo cáo tồn kho', path: '/stock-balance-report', icon: Wallet },
+      { name: 'Tồn dự kiến', path: '/stock-projected-qty', icon: TrendingUp },
+      { name: 'Tuổi tồn kho', path: '/stock-ageing', icon: Clock },
+      { name: 'Tồn theo kho', path: '/warehouse-wise-stock', icon: MapPin },
+      { name: 'Thiếu hàng', path: '/item-shortage-report', icon: AlertTriangle },
+    ],
+  },
+  {
+    label: 'Danh mục',
+    icon: Folders,
+    items: [
+      { name: 'Nhóm vật tư', path: '/item-groups', icon: Folders },
+      { name: 'Thương hiệu', path: '/brands', icon: Tag },
+      { name: 'Kho hàng', path: '/warehouses', icon: Building2 },
+      { name: 'Đơn vị tính', path: '/uoms', icon: Ruler },
+      { name: 'Số serial', path: '/serial-nos', icon: Hash },
+      { name: 'Số lô', path: '/batch-nos', icon: Layers },
+    ],
+  },
+  {
+    label: 'Cài đặt',
+    icon: Settings2,
+    items: [
+      { name: 'Cài đặt kho', path: '/stock-settings', icon: Settings2 },
+    ],
+  },
 ];
 
 const bottomNavItems = [
@@ -40,8 +76,42 @@ const bottomNavItems = [
 
 export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set(navGroups.map((g) => g.label)));
   const navigate = useNavigate();
+  const location = useLocation();
   const userName = localStorage.getItem('erp_full_name') || localStorage.getItem('erp_user') || '';
+
+  const toggleGroup = (label: string) => {
+    setCollapsedGroups((prev) => {
+      if (prev.has(label)) {
+        // If clicking a collapsed group, collapse all others and expand this one
+        const next = new Set(navGroups.map((g) => g.label).filter((l) => l !== label));
+        return next;
+      } else {
+        // If clicking an expanded group, collapse it
+        const next = new Set(prev);
+        next.add(label);
+        return next;
+      }
+    });
+  };
+
+  const isGroupActive = (items: { path: string }[]) => {
+    return items.some((item) => {
+      if (item.path === '/') return location.pathname === '/';
+      return location.pathname.startsWith(item.path);
+    });
+  };
+
+  // Keep only active group expanded
+  React.useEffect(() => {
+    const activeGroup = navGroups.find((group) => isGroupActive(group.items));
+    if (!activeGroup) {
+      setCollapsedGroups(new Set(navGroups.map((g) => g.label)));
+      return;
+    }
+    setCollapsedGroups(new Set(navGroups.map((g) => g.label).filter((label) => label !== activeGroup.label)));
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     setIsSidebarOpen(false);
@@ -72,22 +142,50 @@ export function Layout() {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) => cn(
-                  "flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                  isActive
-                    ? "bg-blue-50 text-blue-600"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                {item.name}
-              </NavLink>
-            ))}
+            {navGroups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.label);
+              const hasActive = isGroupActive(group.items);
+              return (
+                <div key={group.label}>
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className={cn(
+                      "flex items-center w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all duration-200 mb-0.5",
+                      hasActive
+                        ? "text-blue-600"
+                        : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    <group.icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="flex-1 text-left">{group.label}</span>
+                    <ChevronDown className={cn(
+                      "w-3.5 h-3.5 transition-transform duration-200",
+                      isCollapsed ? "-rotate-90" : ""
+                    )} />
+                  </button>
+                  {!isCollapsed && (
+                    <div className="ml-2 mb-1">
+                      {group.items.map((item) => (
+                        <NavLink
+                          key={item.name}
+                          to={item.path}
+                          end={item.path === '/'}
+                          className={({ isActive }) => cn(
+                            "flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200",
+                            isActive
+                              ? "bg-blue-50 text-blue-600"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 mr-3 flex-shrink-0" />
+                          {item.name}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Bottom section */}
@@ -144,21 +242,51 @@ export function Layout() {
             </button>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.path}
-                end={item.path === '/'}
-                onClick={() => setIsSidebarOpen(false)}
-                className={({ isActive }) => cn(
-                  "flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200",
-                  isActive ? "bg-blue-50 text-blue-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
-              >
-                <item.icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                {item.name}
-              </NavLink>
-            ))}
+            {navGroups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.label);
+              const hasActive = isGroupActive(group.items);
+              return (
+                <div key={group.label}>
+                  <button
+                    onClick={() => toggleGroup(group.label)}
+                    className={cn(
+                      "flex items-center w-full px-3 py-2 text-xs font-semibold uppercase tracking-wider rounded-xl transition-all duration-200 mb-0.5",
+                      hasActive
+                        ? "text-blue-600"
+                        : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    <group.icon className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="flex-1 text-left">{group.label}</span>
+                    <ChevronDown className={cn(
+                      "w-3.5 h-3.5 transition-transform duration-200",
+                      isCollapsed ? "-rotate-90" : ""
+                    )} />
+                  </button>
+                  {!isCollapsed && (
+                    <div className="ml-2 mb-1">
+                      {group.items.map((item) => (
+                        <NavLink
+                          key={item.name}
+                          to={item.path}
+                          end={item.path === '/'}
+                          onClick={() => setIsSidebarOpen(false)}
+                          className={({ isActive }) => cn(
+                            "flex items-center px-3 py-2 text-sm font-medium rounded-xl transition-all duration-200",
+                            isActive
+                              ? "bg-blue-50 text-blue-600"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          )}
+                        >
+                          <item.icon className="w-4 h-4 mr-3 flex-shrink-0" />
+                          {item.name}
+                        </NavLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
           <div className="p-3 border-t border-gray-100 space-y-1">
             <NavLink to="/profile" onClick={() => setIsSidebarOpen(false)} className={({ isActive }) => cn(
