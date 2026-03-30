@@ -250,46 +250,46 @@ export function ItemDetail() {
             <p className="text-[10px] text-gray-400">Điều chuyển / xuất</p>
           </div>
         </Link>
+        <Link to="/material-requests" className="card p-3 flex items-center gap-3 card-press group">
+          <div className="w-10 h-10 bg-violet-50 rounded-xl flex items-center justify-center group-hover:bg-violet-100 transition-colors">
+            <ClipboardList className="w-5 h-5 text-violet-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Yêu cầu VT</p>
+            <p className="text-[10px] text-gray-400">Tạo yêu cầu</p>
+          </div>
+        </Link>
+        <Link to="/delivery-notes" className="card p-3 flex items-center gap-3 card-press group">
+          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+            <Truck className="w-5 h-5 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Giao hàng</p>
+            <p className="text-[10px] text-gray-400">Tạo phiếu giao</p>
+          </div>
+        </Link>
       </div>
 
-      {/* Info sections - responsive 2 columns on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Tổng quan */}
-        <div className="card p-4 animate-slide-up stagger-2">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-            <BarChart3 className="w-4 h-4 mr-2 text-gray-400" />
-            Tổng quan
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Tổng tồn kho" value={totalStock.toLocaleString()} color="blue" />
-            <StatCard label="Đơn vị tính" value={item.stock_uom || 'Unit'} color="gray" />
-            {item.valuation_rate > 0 && (
-              <StatCard label="Giá trị / đơn vị" value={item.valuation_rate.toLocaleString('vi-VN')} color="green" />
-            )}
-            {totalValue > 0 && (
-              <StatCard label="Tổng giá trị" value={totalValue.toLocaleString('vi-VN')} color="green" />
-            )}
-            {item.brand && <StatCard label="Thương hiệu" value={item.brand} color="purple" />}
-            {item.manufacturer && <StatCard label="Nhà sản xuất" value={item.manufacturer} color="gray" />}
-          </div>
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-100 animate-slide-up stagger-2">
+        <div className="flex items-center gap-0 overflow-x-auto">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex-shrink-0",
+                activeTab === tab.key
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
-
-        {/* Thông tin cơ bản */}
-        <div className="card p-4 animate-slide-up stagger-3">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-            <Package className="w-4 h-4 mr-2 text-gray-400" />
-            Thông tin cơ bản
-          </h3>
-          <div className="space-y-3">
-            <InfoRow icon={Hash} label="Mã vật tư" value={item.name} />
-            <InfoRow icon={Tag} label="Tên vật tư" value={item.item_name} />
-            <InfoRow icon={Grid3X3} label="Nhóm vật tư" value={item.item_group_name || item.item_group} />
-            <InfoRow icon={Ruler} label="Đơn vị tính" value={item.stock_uom || 'Unit'} />
-            {item.description && <InfoRow icon={FileText} label="Mô tả" value={item.description} multiline />}
-            {item.brand && <InfoRow icon={Tag} label="Thương hiệu" value={item.brand} />}
-            {item.manufacturer && <InfoRow icon={Building} label="Nhà sản xuất" value={item.manufacturer} />}
-          </div>
-        </div>
+      </div>
 
       {/* Tab Content */}
       <div className="animate-slide-up stagger-3">
