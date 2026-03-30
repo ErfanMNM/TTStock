@@ -82,6 +82,7 @@ export function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(['Tổng quan']);
   const navigate = useNavigate();
+  const location = useLocation();
   const userName = localStorage.getItem('erp_full_name') || localStorage.getItem('erp_user') || '';
 
   const toggleGroup = (label: string) => {
