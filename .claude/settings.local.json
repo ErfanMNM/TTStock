@@ -6,7 +6,13 @@
       "Bash(cd:*)",
       "WebFetch(domain:stock.mte.vn)",
       "Bash(curl:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(shutdown:*)",
+      "Bash(powershell -Command \"Stop-Computer -Force\" 2>&1)",
+      "Bash(git config:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }

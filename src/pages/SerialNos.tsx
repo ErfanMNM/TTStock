@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
-import { Hash, Package, Warehouse, CheckCircle, Ban } from 'lucide-react';
+import { Hash, Package, Warehouse, CheckCircle, Ban, Search } from 'lucide-react';
+import { cn } from '../lib/utils';
+
+const PAGE_SIZES = [10, 20, 30, 50, 100];
 
 export function SerialNos() {
   const [serialNos, setSerialNos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'active' | 'sold'>('all');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(30);
+  const [colSearch, setColSearch] = useState({ name: '', item: '', warehouse: '' });
 
   useEffect(() => { fetchSerialNos(); }, []);
 
@@ -16,7 +22,7 @@ export function SerialNos() {
         params: {
           fields: '["name", "item_code", "status", "warehouse", "purchase_document_no"]',
           order_by: 'creation desc',
-          limit_page_length: 100,
+          limit_page_length: 1000,
         }
       });
       setSerialNos(response.data.data || []);
@@ -34,24 +40,41 @@ export function SerialNos() {
     return labels[status] || status;
   };
 
-  const getStatusChip = (status: string) => {
-    if (status === 'Active') return 'chip-green';
-    if (status === 'Sold') return 'chip-red';
-    if (status === 'Cancelled') return 'chip-gray';
-    return 'chip-yellow';
+  const filtered = useMemo(() => {
+    let result = serialNos;
+    if (filter === 'active') result = result.filter(e => e.status === 'Active');
+    else if (filter === 'sold') result = result.filter(e => e.status === 'Sold');
+    if (colSearch.name) {
+      const q = colSearch.name.toLowerCase();
+      result = result.filter(e => (e.name || '').toLowerCase().includes(q));
+    }
+    if (colSearch.item) {
+      const q = colSearch.item.toLowerCase();
+      result = result.filter(e => (e.item_code || '').toLowerCase().includes(q));
+    }
+    if (colSearch.warehouse) {
+      const q = colSearch.warehouse.toLowerCase();
+      result = result.filter(e => (e.warehouse || '').toLowerCase().includes(q));
+    }
+    return result;
+  }, [serialNos, filter, colSearch]);
+
+  const paginated = useMemo(() => {
+    const start = page * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
+
+  const hasMore = filtered.length > page * pageSize + pageSize;
+
+  const handleColSearch = (col: keyof typeof colSearch, value: string) => {
+    setColSearch(prev => ({ ...prev, [col]: value }));
+    setPage(0);
   };
 
-  const getStatusIcon = (status: string) => {
-    if (status === 'Active') return CheckCircle;
-    if (status === 'Sold') return Ban;
-    return Ban;
+  const handlePage = (pageNum: number) => {
+    setPage(pageNum);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
-
-  const filtered = serialNos.filter(e => {
-    if (filter === 'active') return e.status === 'Active';
-    if (filter === 'sold') return e.status === 'Sold';
-    return true;
-  });
 
   const statusCounts = {
     all: serialNos.length,
@@ -59,16 +82,31 @@ export function SerialNos() {
     sold: serialNos.filter(e => e.status === 'Sold').length,
   };
 
+  const totalPages = hasMore ? Math.ceil(filtered.length / pageSize) : page + 1;
+  const pages: (number | string)[] = [];
+  if (totalPages <= 7) { for (let i = 0; i < totalPages; i++) pages.push(i); }
+  else {
+    pages.push(0);
+    if (page > 2) pages.push('...');
+    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) pages.push(i);
+    if (page < totalPages - 3) pages.push('...');
+    pages.push(totalPages - 1);
+  }
+
+  const hasFilters = filter !== 'all' || colSearch.name || colSearch.item || colSearch.warehouse;
+
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="animate-slide-up">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Số serial</h1>
-        <p className="text-xs lg:text-sm text-gray-400 mt-0.5">{serialNos.length} serial</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Số serial</h1>
+          <p className="text-xs lg:text-sm text-gray-400 mt-0.5">
+            {filtered.length > 0 ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} / ${filtered.length} serial` : `${filtered.length} serial`}
+          </p>
+        </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex space-x-2 overflow-x-auto pb-1 animate-slide-up stagger-1">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 animate-slide-up stagger-1">
         {[
           { key: 'all', label: 'Tất cả' },
           { key: 'active', label: 'Hoạt động' },
@@ -76,18 +114,22 @@ export function SerialNos() {
         ].map(tab => (
           <button
             key={tab.key}
-            onClick={() => setFilter(tab.key as typeof filter)}
-            className={`chip whitespace-nowrap transition-all ${filter === tab.key ? 'chip-blue shadow-sm' : 'chip-gray'}`}
+            onClick={() => { setFilter(tab.key as typeof filter); setPage(0); }}
+            className={cn("chip whitespace-nowrap transition-all", filter === tab.key ? "chip-blue shadow-sm" : "chip-gray")}
           >
             {tab.label} ({statusCounts[tab.key as keyof typeof statusCounts]})
           </button>
         ))}
+        {hasFilters && (
+          <button onClick={() => { setFilter('all'); setColSearch({ name: '', item: '', warehouse: '' }); setPage(0); }} className="text-xs text-red-500 hover:text-red-600 font-medium ml-1">
+            Xóa lọc
+          </button>
+        )}
       </div>
 
-      {/* List */}
       <div className="animate-slide-up stagger-2">
         {loading ? (
-          <div className="flex items-center justify-center h-40">
+          <div className="flex items-center justify-center h-48">
             <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
@@ -95,48 +137,92 @@ export function SerialNos() {
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Hash className="w-8 h-8 text-gray-300" />
             </div>
-            <p className="text-sm font-medium text-gray-500">Chưa có số serial nào.</p>
+            <p className="text-sm font-medium text-gray-500">Không tìm thấy serial nào.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {filtered.map((sn, i) => {
-              const StatusIcon = getStatusIcon(sn.status);
-              return (
-                <div key={sn.name} className="card p-4 animate-slide-up" style={{ animationDelay: `${i * 20}ms` }}>
-                  <div className="flex items-start space-x-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      sn.status === 'Active' ? 'bg-green-50' : sn.status === 'Sold' ? 'bg-red-50' : 'bg-gray-100'
-                    }`}>
-                      <Hash className={`w-5 h-5 ${
-                        sn.status === 'Active' ? 'text-green-500' : sn.status === 'Sold' ? 'text-red-500' : 'text-gray-400'
-                      }`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 break-all">{sn.name}</p>
-                      {sn.item_code && (
-                        <div className="flex items-center space-x-1.5 mt-0.5">
-                          <Package className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-500 truncate">{sn.item_code}</span>
+          <>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="text-left min-w-[180px]">
+                        <div className="flex flex-col gap-1">
+                          <span>Số serial</span>
+                          <div className="relative">
+                            <input type="text" value={colSearch.name} onChange={(e) => handleColSearch('name', e.target.value)} placeholder="Lọc..." className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 placeholder:!text-gray-300" />
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                          </div>
                         </div>
-                      )}
-                      {sn.warehouse && (
-                        <div className="flex items-center space-x-1.5 mt-0.5">
-                          <Warehouse className="w-3 h-3 text-gray-400" />
-                          <span className="text-xs text-gray-500 truncate">{sn.warehouse}</span>
+                      </th>
+                      <th className="text-left min-w-[140px]">
+                        <div className="flex flex-col gap-1">
+                          <span>Vật tư</span>
+                          <div className="relative">
+                            <input type="text" value={colSearch.item} onChange={(e) => handleColSearch('item', e.target.value)} placeholder="Lọc..." className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 placeholder:!text-gray-300" />
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-shrink-0 ml-auto">
-                      <span className={`chip ${getStatusChip(sn.status)} text-[10px]`}>
-                        <StatusIcon className="w-3 h-3 mr-0.5" />
-                        {getStatusLabel(sn.status)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                      </th>
+                      <th className="text-left min-w-[140px]">
+                        <div className="flex flex-col gap-1">
+                          <span>Kho</span>
+                          <div className="relative">
+                            <input type="text" value={colSearch.warehouse} onChange={(e) => handleColSearch('warehouse', e.target.value)} placeholder="Lọc..." className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 placeholder:!text-gray-300" />
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                          </div>
+                        </div>
+                      </th>
+                      <th className="text-left">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((sn, i) => (
+                      <tr key={sn.name} className="animate-slide-up" style={{ animationDelay: `${i * 10}ms` }}>
+                        <td className="font-mono font-semibold text-gray-900 break-all">{sn.name}</td>
+                        <td className="text-sm text-gray-700">{sn.item_code || '—'}</td>
+                        <td className="text-sm text-gray-500">{sn.warehouse || '—'}</td>
+                        <td>
+                          <span className={cn(
+                            "chip !text-xs",
+                            sn.status === 'Active' ? 'chip-green' :
+                            sn.status === 'Sold' ? 'chip-red' : 'chip-gray'
+                          )}>
+                            {sn.status === 'Active' ? <CheckCircle className="w-3 h-3 mr-0.5" /> : <Ban className="w-3 h-3 mr-0.5" />}
+                            {getStatusLabel(sn.status)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Hiển thị</span>
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }} className="input-field !rounded-lg !py-1.5 !px-2 !text-xs !w-16 !h-8 cursor-pointer">
+                  {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <span className="text-xs text-gray-400">/ trang</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400 mr-2">{page * pageSize + 1}–{Math.min((page + 1) * pageSize, filtered.length)}</span>
+                <button onClick={() => handlePage(0)} disabled={page === 0} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><span className="text-xs font-bold">«</span></button>
+                <button onClick={() => handlePage(page - 1)} disabled={page === 0} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><span className="text-xs">‹</span></button>
+                {pages.map((p, idx) =>
+                  p === '...' ? <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-xs">…</span> : (
+                    <button key={p} onClick={() => handlePage(p as number)} className={cn("w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-colors", p === page ? "bg-blue-500 text-white shadow-sm" : "border border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                      {(p as number) + 1}
+                    </button>
+                  )
+                )}
+                <button onClick={() => handlePage(page + 1)} disabled={!hasMore} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><span className="text-xs">›</span></button>
+                <button onClick={() => handlePage(totalPages - 1)} disabled={!hasMore} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"><span className="text-xs font-bold">»</span></button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

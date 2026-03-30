@@ -158,13 +158,34 @@ export const erpService = {
 
   // Warehouses
   getWarehouses: async () => {
-    const response = await api.get(`/api/resource/Warehouse`, {
-      params: {
-        fields: '["name", "warehouse_name", "company", "is_group"]',
-        limit_page_length: 100,
+    try {
+      const response = await api.get(`/api/resource/Warehouse`, {
+        params: {
+          fields: '["name", "warehouse_name", "is_group"]',
+          limit_page_length: 100,
+        }
+      });
+      return response.data.data || [];
+    } catch (err: any) {
+      console.error('Lỗi getWarehouses:', err);
+      // Nếu lỗi 500 từ server, thử gọi method thay thế
+      if (err.response?.status === 500) {
+        try {
+          const res = await api.get('/api/method/frappe.client.get_list', {
+            params: {
+              doctype: 'Warehouse',
+              filters: JSON.stringify([]),
+              fields: JSON.stringify(['name', 'warehouse_name', 'is_group']),
+              limit: 100,
+            }
+          });
+          return res.data.message || [];
+        } catch {
+          return [];
+        }
       }
-    });
-    return response.data.data;
+      return [];
+    }
   },
 
   // Stock Balance
