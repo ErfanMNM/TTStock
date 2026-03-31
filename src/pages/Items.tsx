@@ -208,7 +208,8 @@ export function Items() {
           <Link to="/items/new" className="btn-primary !rounded-xl !px-4 !py-2.5 !text-sm flex items-center gap-1.5">
             <Plus className="w-4 h-4" />
             Thêm mới
-        </Link>
+          </Link>
+        </div>
       </div>
 
       {/* Search + Filters */}

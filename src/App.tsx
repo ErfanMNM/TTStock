@@ -13,6 +13,7 @@ import { ItemDetail } from './pages/ItemDetail';
 import { NewItem } from './pages/NewItem';
 import { Stock } from './pages/Stock';
 import { Transfers } from './pages/Transfers';
+import { TransferDetail } from './pages/TransferDetail';
 import { NewTransfer } from './pages/NewTransfer';
 import { MaterialRequests } from './pages/MaterialRequests';
 import { BOMs } from './pages/BOMs';
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="stock" element={<Stock />} />
           <Route path="transfers" element={<Transfers />} />
           <Route path="transfers/new" element={<NewTransfer />} />
+          <Route path="transfers/:id" element={<TransferDetail />} />
           <Route path="stock/receive" element={<NewTransfer />} />
           <Route path="material-requests" element={<MaterialRequests />} />
           <Route path="boms" element={<BOMs />} />

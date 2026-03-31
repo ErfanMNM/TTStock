@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { erpService } from '../services/api';
 import { ArrowLeftRight, Calendar, CheckCircle, Clock, Plus, Ban, Search, Download, Printer } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { exportToCsv, printPage } from '../lib/export';
 
@@ -14,6 +14,7 @@ export function Transfers() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(30);
   const [colSearch, setColSearch] = useState({ name: '', type: '', date: '' });
+  const navigate = useNavigate();
 
   const fetchEntries = async () => {
     setLoading(true);
@@ -207,7 +208,12 @@ export function Transfers() {
                   </thead>
                   <tbody>
                     {paginated.map((entry, i) => (
-                      <tr key={entry.name} className="animate-slide-up" style={{ animationDelay: `${i * 10}ms` }}>
+                      <tr
+                        key={entry.name}
+                        className="animate-slide-up cursor-pointer hover:bg-blue-50/50 transition-colors"
+                        style={{ animationDelay: `${i * 10}ms` }}
+                        onClick={() => navigate(`/transfers/${encodeURIComponent(entry.name)}`)}
+                      >
                         <td className="font-mono font-semibold text-blue-600">{entry.name}</td>
                         <td>
                           <span className={cn("chip !text-xs",

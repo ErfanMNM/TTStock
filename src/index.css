@@ -301,3 +301,243 @@
 .stagger-3 { animation-delay: 150ms; }
 .stagger-4 { animation-delay: 200ms; }
 .stagger-5 { animation-delay: 250ms; }
+
+/* ========== PHIẾU IN (Print Document) ========== */
+.print-view {
+  /* chỉ hiện khi in */
+  display: none;
+}
+
+.ph-wrap {
+  background: #fff;
+  padding: 32px;
+  font-family: 'Times New Roman', Times, serif;
+  color: #1a1a1a;
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+/* Doc header */
+.ph-doc-header {
+  text-align: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid #333;
+}
+
+.ph-company {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.ph-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: 0.3px;
+}
+
+/* Info box */
+.ph-info-box {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #f5f5f5;
+  border-left: 3px solid #333;
+  border-radius: 3px;
+}
+
+.ph-row {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.ph-label {
+  color: #555;
+  white-space: nowrap;
+}
+
+.ph-val {
+  color: #1a1a1a;
+}
+
+.ph-bold {
+  font-weight: 700;
+}
+
+/* Table */
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.ph-table thead tr {
+  background: #ddd;
+  color: #1a1a1a;
+}
+
+.ph-table thead th {
+  padding: 8px 7px;
+  font-weight: 700;
+  text-align: left;
+  font-size: 12px;
+  border: 1px solid #aaa;
+}
+
+.ph-table tbody tr {
+  border: 1px solid #ccc;
+}
+
+.ph-table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.ph-table td {
+  padding: 7px 7px;
+  vertical-align: middle;
+  font-size: 13px;
+  border: 1px solid #ccc;
+}
+
+.ph-total-row {
+  background: #eee !important;
+  font-weight: 700;
+}
+
+.ph-total-row td {
+  border: 1px solid #aaa;
+}
+
+/* Amount text */
+.ph-amount-text {
+  text-align: right;
+  font-size: 12px;
+  color: #444;
+  margin-bottom: 12px;
+}
+
+/* Remarks */
+.ph-remarks-box {
+  font-size: 12px;
+  color: #333;
+  padding: 8px 12px;
+  background: #fffde7;
+  border-left: 3px solid #f9a825;
+  border-radius: 3px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* Signatures */
+.ph-sig-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 28px;
+  margin-bottom: 16px;
+}
+
+.ph-sig-cell {
+  text-align: center;
+  padding: 0 6px;
+}
+
+.ph-sig-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.ph-sig-line {
+  height: 56px;
+  border-bottom: 1px solid #555;
+}
+
+/* Footer */
+.ph-doc-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #888;
+  padding-top: 6px;
+  border-top: 1px solid #eee;
+}
+
+/* Print media queries */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  /* Ẩn web view khi in */
+  .web-view,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Hiện phần in */
+  .print-view {
+    display: block !important;
+  }
+
+  /* Nền giấy in */
+  .ph-wrap {
+    display: block !important;
+    background: #fff !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .ph-table thead tr {
+    background: #ddd !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ph-table tbody tr:nth-child(even) {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ph-total-row {
+    background: #e0e0e0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ph-info-box {
+    background: #f5f5f5 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .ph-remarks-box {
+    background: #fffde7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}

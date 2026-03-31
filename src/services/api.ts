@@ -245,6 +245,43 @@ export const erpService = {
     return response.data.data;
   },
 
+  // Get Company Info
+  getCompany: async () => {
+    const response = await api.get('/api/resource/Company', {
+      params: {
+        fields: '["name", "company_name"]',
+        limit_page_length: 1,
+      }
+    });
+    return response.data.data?.[0];
+  },
+
+  // Get Stock Entry Details
+  getStockEntryDetails: async (name: string) => {
+    const response = await api.get(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
+      params: {
+        fields: JSON.stringify([
+          "name", "stock_entry_type", "posting_date", "posting_time",
+          "docstatus", "purpose", "company", "from_warehouse", "to_warehouse",
+          "add_multiple_items", "inspection_required", "receive_items",
+          "remarks", "per_refunded", "total_amount", "basic_rate",
+          "creation", "modified", "owner", "modified_by",
+        ]),
+      }
+    });
+    return response.data.data;
+  },
+
+  // Get Stock Entry Items
+  getStockEntryItems: async (name: string) => {
+    const response = await api.get(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
+      params: {
+        fields: '["items"]',
+      }
+    });
+    return response.data.data?.items || [];
+  },
+
   // Submit Stock Entry
   submitStockEntry: async (name: string) => {
     const response = await api.put(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
@@ -317,6 +354,14 @@ export const erpService = {
 
   createDeliveryNote: async (data: any) => {
     const response = await api.post('/api/resource/Delivery Note', data);
+    return response.data.data;
+  },
+
+  // Stock Entry actions
+  submitStockEntry: async (name: string) => {
+    const response = await api.post(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
+      docstatus: 1,
+    });
     return response.data.data;
   },
 };

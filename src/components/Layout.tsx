@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-dom';
 import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Settings, ClipboardList, FileText, Truck, PackageSearch, ListTodo, Scale, BarChart3, Folders, Tag, Ruler, Hash, Layers, BookOpen, Wallet, TrendingUp, Clock, MapPin, AlertTriangle, Settings2, Building2, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { erpService } from '../services/api';
