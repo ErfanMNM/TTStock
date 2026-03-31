@@ -359,9 +359,16 @@ export const erpService = {
 
   // Stock Entry actions
   submitStockEntry: async (name: string) => {
-    const response = await api.post(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
-      docstatus: 1,
+    // Dùng fetch thuần để kiểm soát hoàn toàn request (form-encoded như ERPNext yêu cầu)
+    const formData = new URLSearchParams({ doctype: 'Stock Entry', docname: name });
+    const response = await fetch('/api/method/frappe.client.submit', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData,
     });
-    return response.data.data;
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.exception || data.message || 'Lỗi duyệt phiếu');
+    return data;
   },
 };
