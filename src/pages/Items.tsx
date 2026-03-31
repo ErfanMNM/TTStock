@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
-import { Search, Package, Plus, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Image as ImageIcon, Filter, ChevronDown, Download, FileSpreadsheet, Printer } from 'lucide-react';
+import { Search, Package, Plus, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Image as ImageIcon, Filter, ChevronDown, Download, FileSpreadsheet, Printer, ArrowUp, ArrowDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { exportToCsv, printPage } from '../lib/export';
@@ -21,6 +21,10 @@ export function Items() {
   const [filterGroup, setFilterGroup] = useState('');
   const [filterUom, setFilterUom] = useState('');
   const [colSearch, setColSearch] = useState({ code: '', name: '', group: '', uom: '' });
+
+  // Column sort
+  const [sortCol, setSortCol] = useState<''|'code'|'name'|'group'|'uom'>('');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
 
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -110,13 +114,28 @@ export function Items() {
     return result;
   }, [allItems, search, filterGroup, filterUom, colSearch]);
 
+  // Apply sort
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      let aVal = '', bVal = '';
+      if (sortCol === 'code') { aVal = (a.name || '').toLowerCase(); bVal = (b.name || '').toLowerCase(); }
+      if (sortCol === 'name') { aVal = (a.item_name || '').toLowerCase(); bVal = (b.item_name || '').toLowerCase(); }
+      if (sortCol === 'group') { aVal = (a.item_group || '').toLowerCase(); bVal = (b.item_group || '').toLowerCase(); }
+      if (sortCol === 'uom') { aVal = (a.stock_uom || '').toLowerCase(); bVal = (b.stock_uom || '').toLowerCase(); }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortCol, sortDir]);
+
   // Paginate from filtered results
   const paginated = useMemo(() => {
     const start = page * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, page, pageSize]);
 
-  const hasMoreFiltered = filtered.length > page * pageSize + pageSize;
+  const hasMoreFiltered = sorted.length > (page + 1) * pageSize;
 
   const handleExportCsv = () => {
     exportToCsv(filtered, [
@@ -157,7 +176,17 @@ export function Items() {
     setPage(0);
   };
 
-  const totalPages = hasMoreFiltered ? Math.ceil(filtered.length / pageSize) : page + 1;
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+    setPage(0);
+  };
+
+  const totalPages = hasMoreFiltered ? Math.ceil(sorted.length / pageSize) : page + 1;
   const pages: (number | string)[] = [];
   if (totalPages <= 7) {
     for (let i = 0; i < totalPages; i++) pages.push(i);
@@ -177,6 +206,8 @@ export function Items() {
     setColSearch({ code: '', name: '', group: '', uom: '' });
     setSearch('');
     setSearchInput('');
+    setSortCol('');
+    setSortDir('asc');
     setPage(0);
   };
 
@@ -187,13 +218,13 @@ export function Items() {
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Vật tư</h1>
           <p className="text-xs lg:text-sm text-gray-400 mt-0.5">
-            {filtered.length > 0
-              ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, filtered.length)} / ${filtered.length} vật tư`
-              : `${filtered.length} vật tư`}
+            {sorted.length > 0
+              ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, sorted.length)} / ${sorted.length} vật tư`
+              : `${sorted.length} vật tư`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {filtered.length > 0 && (
+          {sorted.length > 0 && (
             <>
               <button onClick={handleExportCsv} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
                 <Download className="w-3.5 h-3.5" />
@@ -297,7 +328,7 @@ export function Items() {
           <div className="flex items-center justify-center h-48">
             <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="card p-8 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Package className="w-8 h-8 text-gray-300" />
@@ -324,63 +355,75 @@ export function Items() {
                     <tr>
                       <th className="w-14"></th>
                       <th className="text-left min-w-[140px]">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-1">
                           <span>Mã vật tư</span>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={colSearch.code}
-                              onChange={(e) => handleColSearch('code', e.target.value)}
-                              placeholder="Lọc..."
-                              className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
-                            />
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                          </div>
+                          <button onClick={() => handleSort('code')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'code' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'code' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.code}
+                            onChange={(e) => handleColSearch('code', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>
                       </th>
                       <th className="text-left min-w-[200px]">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-1">
                           <span>Tên vật tư</span>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={colSearch.name}
-                              onChange={(e) => handleColSearch('name', e.target.value)}
-                              placeholder="Lọc..."
-                              className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
-                            />
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                          </div>
+                          <button onClick={() => handleSort('name')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'name' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'name' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.name}
+                            onChange={(e) => handleColSearch('name', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>
                       </th>
                       <th className="text-left min-w-[140px]">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between gap-1">
                           <span>Nhóm</span>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              value={colSearch.group}
-                              onChange={(e) => handleColSearch('group', e.target.value)}
-                              placeholder="Lọc..."
-                              className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
-                            />
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                          </div>
+                          <button onClick={() => handleSort('group')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'group' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'group' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.group}
+                            onChange={(e) => handleColSearch('group', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>
                       </th>
                       <th className="text-center min-w-[80px]">
-                        <div className="flex flex-col gap-1 items-center">
+                        <div className="flex items-center justify-center gap-1">
                           <span>Đơn vị</span>
-                          <div className="relative w-full max-w-[80px]">
-                            <input
-                              type="text"
-                              value={colSearch.uom}
-                              onChange={(e) => handleColSearch('uom', e.target.value)}
-                              placeholder="..."
-                              className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
-                            />
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                          </div>
+                          <button onClick={() => handleSort('uom')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'uom' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'uom' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative w-full max-w-[80px] mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.uom}
+                            onChange={(e) => handleColSearch('uom', e.target.value)}
+                            placeholder="..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>
                       </th>
                     </tr>
@@ -435,7 +478,7 @@ export function Items() {
 
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-400 mr-2">
-                  {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filtered.length)}
+                  {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)}
                 </span>
                 <button
                   onClick={() => handlePage(0)}

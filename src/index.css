@@ -121,6 +121,19 @@
     @apply bg-gray-100 text-gray-600;
   }
 
+  .chip-purple {
+    @apply bg-purple-50 text-purple-700;
+  }
+
+  .col-search {
+    @apply w-full px-2 py-1 rounded-lg border border-gray-200 bg-white text-xs text-gray-700 placeholder-gray-400 outline-none;
+    transition: border-color 0.15s ease;
+  }
+
+  .col-search:focus {
+    @apply border-blue-400 ring-1 ring-blue-400/30;
+  }
+
   .fab {
     @apply fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center z-40;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -286,6 +299,15 @@
 
 .animate-fade-in {
   animation: fadeIn 0.3s ease;
+}
+
+.animate-slide-in {
+  animation: fadeSlideIn 0.2s ease;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 .animate-slide-up {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
 import { ClipboardList, Calendar, CheckCircle, Clock, Plus, Ban, Search, Package } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
 export function MaterialRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'draft' | 'submitted'>('all');
@@ -178,8 +179,8 @@ export function MaterialRequests() {
                   </thead>
                   <tbody>
                     {paginated.map((req, i) => (
-                      <tr key={req.name} className="animate-slide-up" style={{ animationDelay: `${i * 10}ms` }}>
-                        <td className="font-mono font-semibold text-blue-600">{req.name}</td>
+                      <tr key={req.name} className="group cursor-pointer animate-slide-up hover:bg-blue-50/50 transition-colors" style={{ animationDelay: `${i * 10}ms` }} onClick={() => navigate(`/material-requests/${encodeURIComponent(req.name)}`)}>
+                        <td className="font-mono font-semibold text-blue-600 group-hover:text-blue-700">{req.name}</td>
                         <td><span className="chip chip-blue !text-xs">{getTypeLabel(req.material_request_type)}</span></td>
                         <td className="text-sm text-gray-500">{req.transaction_date}</td>
                         <td>

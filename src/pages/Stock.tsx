@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
-import { Search, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Download, X, Warehouse } from 'lucide-react';
+import { Search, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Download, X, Warehouse, Printer, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { exportToCsv } from '../lib/export';
+import { exportToCsv, printPage } from '../lib/export';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
@@ -19,14 +19,11 @@ export function Stock() {
   const [filterWarehouse, setFilterWarehouse] = useState('');
   const [colSearch, setColSearch] = useState({ code: '', name: '', group: '', warehouse: '' });
 
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  // Column sort
+  const [sortCol, setSortCol] = useState<''|'code'|'name'|'group'|'warehouse'>('');
+  const [sortDir, setSortDir] = useState<'asc'|'desc'>('asc');
 
-  const fetchAllStock = async () => {
-    try {
-      const data = await erpService.getStockBalance('', '');
-      setAllStock(data);
-    } catch { setAllStock([]); }
-  };
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const fetchStock = async () => {
     setLoading(true);
@@ -34,11 +31,11 @@ export function Stock() {
       const data = await erpService.getStockBalance('', '');
       setStock(data);
       setAllStock(data);
-    } catch { setStock([]); }
+    } catch { setStock([]); setAllStock([]); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchStock(); fetchAllStock(); }, []);
+  useEffect(() => { fetchStock(); }, []);
 
   // Unique warehouse options
   const warehouses = useMemo(() => {
@@ -88,11 +85,28 @@ export function Stock() {
     return result;
   }, [allStock, search, filterWarehouse, colSearch]);
 
+  // Apply sort
+  const sorted = useMemo(() => {
+    if (!sortCol) return filtered;
+    return [...filtered].sort((a, b) => {
+      let aVal = '', bVal = '';
+      if (sortCol === 'code') { aVal = (a.item_code || '').toLowerCase(); bVal = (b.item_code || '').toLowerCase(); }
+      if (sortCol === 'name') { aVal = (a.item_name || '').toLowerCase(); bVal = (b.item_name || '').toLowerCase(); }
+      if (sortCol === 'group') { aVal = (a.item_group || '').toLowerCase(); bVal = (b.item_group || '').toLowerCase(); }
+      if (sortCol === 'warehouse') { aVal = (a.warehouse || '').toLowerCase(); bVal = (b.warehouse || '').toLowerCase(); }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortCol, sortDir]);
+
   // Paginate
   const paginated = useMemo(() => {
     const start = page * pageSize;
-    return filtered.slice(start, start + pageSize);
-  }, [filtered, page, pageSize]);
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, page, pageSize]);
+
+  const hasMoreFiltered = sorted.length > (page + 1) * pageSize;
 
   const handleExportCsv = () => {
     exportToCsv(filtered, [
@@ -134,7 +148,17 @@ export function Stock() {
     setPage(0);
   };
 
-  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const handleSort = (col: typeof sortCol) => {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(col);
+      setSortDir('asc');
+    }
+    setPage(0);
+  };
+
+  const totalPages = Math.ceil(sorted.length / pageSize) || 1;
   const pages: (number | string)[] = [];
   if (totalPages <= 7) {
     for (let i = 0; i < totalPages; i++) pages.push(i);
@@ -153,19 +177,37 @@ export function Stock() {
     setColSearch({ code: '', name: '', group: '', warehouse: '' });
     setSearch('');
     setSearchInput('');
+    setSortCol('');
+    setSortDir('asc');
     setPage(0);
   };
 
-  const totalQty = filtered.reduce((sum, b) => sum + (b.actual_qty || 0), 0);
+  const totalQty = sorted.reduce((sum, b) => sum + (b.actual_qty || 0), 0);
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="animate-slide-up">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Tồn kho</h1>
-        <p className="text-xs lg:text-sm text-gray-400 mt-0.5">
-          Tổng: {totalQty.toLocaleString()} đơn vị · {filtered.length} dòng
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Tồn kho</h1>
+          <p className="text-xs lg:text-sm text-gray-400 mt-0.5">
+            Tổng: {totalQty.toLocaleString()} đơn vị · {sorted.length} dòng
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {sorted.length > 0 && (
+            <>
+              <button onClick={handleExportCsv} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
+                <Download className="w-3.5 h-3.5" />
+                Xuất CSV
+              </button>
+              <button onClick={printPage} className="btn-ghost !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
+                <Printer className="w-3.5 h-3.5" />
+                In
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Top Filters */}
@@ -200,16 +242,10 @@ export function Stock() {
             <option value="">Tất cả kho</option>
             {warehouses.map(w => <option key={w} value={w}>{w}</option>)}
           </select>
-          {filterWarehouse && (
-            <button onClick={() => { setFilterWarehouse(''); setPage(0); }} className="absolute right-8 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
-            </button>
-          )}
+          <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
-
-        <button onClick={handleExportCsv} className="btn-secondary !rounded-xl !px-3 !py-2.5 !text-sm flex items-center gap-1.5 flex-shrink-0">
-          <Download className="w-4 h-4" /> Excel
-        </button>
       </div>
 
       {/* Active filter tags */}
@@ -244,172 +280,181 @@ export function Stock() {
 
       {/* Table */}
       <div className="animate-slide-up stagger-2">
-        <div className="card overflow-hidden">
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th className="text-center w-10">STT</th>
-                  <th>
-                    <div className="flex flex-col gap-1">
-                      <span>Mã vật tư</span>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input
-                          type="text"
-                          value={colSearch.code}
-                          onChange={(e) => handleColSearch('code', e.target.value)}
-                          placeholder="Lọc..."
-                          className="col-search"
-                        />
-                      </div>
-                    </div>
-                  </th>
-                  <th>
-                    <div className="flex flex-col gap-1">
-                      <span>Tên vật tư</span>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input
-                          type="text"
-                          value={colSearch.name}
-                          onChange={(e) => handleColSearch('name', e.target.value)}
-                          placeholder="Lọc..."
-                          className="col-search"
-                        />
-                      </div>
-                    </div>
-                  </th>
-                  <th>
-                    <div className="flex flex-col gap-1">
-                      <span>Nhóm</span>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input
-                          type="text"
-                          value={colSearch.group}
-                          onChange={(e) => handleColSearch('group', e.target.value)}
-                          placeholder="Lọc..."
-                          className="col-search"
-                        />
-                      </div>
-                    </div>
-                  </th>
-                  <th>
-                    <div className="flex flex-col gap-1">
-                      <span>Kho</span>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
-                        <input
-                          type="text"
-                          value={colSearch.warehouse}
-                          onChange={(e) => handleColSearch('warehouse', e.target.value)}
-                          placeholder="Lọc..."
-                          className="col-search"
-                        />
-                      </div>
-                    </div>
-                  </th>
-                  <th className="text-right">
-                    <div className="flex flex-col gap-1 items-end">
-                      <span>Tồn thực tế</span>
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <tr key={i} className="animate-pulse">
-                      <td><div className="h-4 bg-gray-100 rounded w-6 mx-auto" /></td>
-                      <td><div className="h-4 bg-gray-100 rounded w-24" /></td>
-                      <td><div className="h-4 bg-gray-100 rounded w-32" /></td>
-                      <td><div className="h-4 bg-gray-100 rounded w-20" /></td>
-                      <td><div className="h-4 bg-gray-100 rounded w-28" /></td>
-                      <td><div className="h-4 bg-gray-100 rounded w-12 ml-auto" /></td>
-                    </tr>
-                  ))
-                ) : paginated.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-12">
-                      <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                        <Package className="w-6 h-6 text-gray-300" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-500">
-                        {hasActiveFilters ? 'Không tìm thấy kết quả phù hợp.' : 'Không có dữ liệu tồn kho.'}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  paginated.map((bin, idx) => (
-                    <tr key={bin.name} className="animate-slide-up" style={{ animationDelay: `${idx * 10}ms` }}>
-                      <td className="text-center text-gray-400 text-xs">
-                        {page * pageSize + idx + 1}
-                      </td>
-                      <td className="font-medium text-blue-600">{bin.item_code || '—'}</td>
-                      <td className="text-gray-700">{bin.item_name || '—'}</td>
-                      <td>
-                        <span className="chip chip-gray !text-xs">{bin.item_group || '—'}</span>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1.5">
-                          <Warehouse className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                          <span className="truncate">{bin.warehouse || '—'}</span>
-                        </div>
-                      </td>
-                      <td className="text-right font-semibold text-blue-600">
-                        {bin.actual_qty?.toLocaleString() || 0}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {loading ? (
+          <div className="flex items-center justify-center h-48">
+            <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
+        ) : sorted.length === 0 ? (
+          <div className="card p-8 text-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Package className="w-8 h-8 text-gray-300" />
+            </div>
+            <p className="text-sm font-medium text-gray-500">{search || hasActiveFilters ? 'Không tìm thấy kết quả phù hợp.' : 'Không có dữ liệu tồn kho.'}</p>
+            {(search || hasActiveFilters) && (
+              <button onClick={clearAllFilters} className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
+                Xóa bộ lọc
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th className="text-center w-10">STT</th>
+                      <th className="text-left min-w-[140px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Mã vật tư</span>
+                          <button onClick={() => handleSort('code')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'code' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'code' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.code}
+                            onChange={(e) => handleColSearch('code', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th className="text-left min-w-[200px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Tên vật tư</span>
+                          <button onClick={() => handleSort('name')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'name' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'name' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.name}
+                            onChange={(e) => handleColSearch('name', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th className="text-left min-w-[140px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Nhóm</span>
+                          <button onClick={() => handleSort('group')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'group' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'group' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.group}
+                            onChange={(e) => handleColSearch('group', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th className="text-left min-w-[140px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>Kho</span>
+                          <button onClick={() => handleSort('warehouse')} className={cn('p-0.5 rounded hover:bg-gray-100 transition-colors', sortCol === 'warehouse' ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600')} title="Sắp xếp A-Z">
+                            {sortCol === 'warehouse' && sortDir === 'desc' ? <ArrowDown className="w-3.5 h-3.5" /> : <ArrowUp className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={colSearch.warehouse}
+                            onChange={(e) => handleColSearch('warehouse', e.target.value)}
+                            placeholder="Lọc..."
+                            className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
+                          />
+                          <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        </div>
+                      </th>
+                      <th className="text-right min-w-[100px]">
+                        <div className="flex flex-col gap-1 items-end">
+                          <span>Tồn thực tế</span>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginated.map((bin, idx) => (
+                      <tr key={bin.name} className="animate-slide-up" style={{ animationDelay: `${idx * 10}ms` }}>
+                        <td className="text-center text-gray-400 text-xs">
+                          {page * pageSize + idx + 1}
+                        </td>
+                        <td className="font-medium text-blue-600">{bin.item_code || '—'}</td>
+                        <td className="text-gray-700">{bin.item_name || '—'}</td>
+                        <td>
+                          <span className="chip chip-gray !text-xs">{bin.item_group || '—'}</span>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1.5">
+                            <Warehouse className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{bin.warehouse || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="text-right font-semibold text-blue-600">
+                          {bin.actual_qty?.toLocaleString() || 0}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-          {/* Pagination */}
-          {!loading && paginated.length > 0 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100">
-              <div className="flex items-center gap-2 text-xs text-gray-500">
-                <span>Hiển thị</span>
+            {/* Pagination */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-3 px-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400">Hiển thị</span>
                 <select
                   value={pageSize}
                   onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="border border-gray-200 rounded-lg px-2 py-1 text-xs bg-gray-50"
+                  className="input-field !rounded-lg !py-1.5 !px-2 !text-xs !w-16 !h-8 cursor-pointer"
                 >
                   {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                <span>/ {filtered.length} dòng</span>
+                <span className="text-xs text-gray-400">/ trang</span>
               </div>
 
               <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-400 mr-2">
+                  {page * pageSize + 1}–{Math.min((page + 1) * pageSize, sorted.length)}
+                </span>
                 <button
                   onClick={() => handlePage(0)}
-                  disabled={page === 0}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={page === 0 || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronsLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handlePage(page - 1)}
-                  disabled={page === 0}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={page === 0 || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {pages.map((p, i) =>
+                {pages.map((p, idx) =>
                   p === '...' ? (
-                    <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-xs">…</span>
+                    <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-xs">…</span>
                   ) : (
                     <button
                       key={p}
                       onClick={() => handlePage(p as number)}
                       className={cn(
-                        'min-w-[32px] h-8 rounded-lg text-xs font-medium',
-                        page === p
-                          ? 'bg-blue-600 text-white'
-                          : 'hover:bg-gray-100 text-gray-600'
+                        "w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-colors",
+                        p === page
+                          ? "bg-blue-500 text-white shadow-sm"
+                          : "border border-gray-200 text-gray-500 hover:bg-gray-50"
                       )}
                     >
                       {(p as number) + 1}
@@ -419,22 +464,22 @@ export function Stock() {
 
                 <button
                   onClick={() => handlePage(page + 1)}
-                  disabled={page >= totalPages - 1}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={!hasMoreFiltered || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handlePage(totalPages - 1)}
-                  disabled={page >= totalPages - 1}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={!hasMoreFiltered || loading}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronsRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
