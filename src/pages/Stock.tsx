@@ -250,63 +250,63 @@ export function Stock() {
               <thead>
                 <tr>
                   <th className="text-center w-10">STT</th>
-                  <th>
+                  <th className="text-left min-w-[140px]">
                     <div className="flex flex-col gap-1">
                       <span>Mã vật tư</span>
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         <input
                           type="text"
                           value={colSearch.code}
                           onChange={(e) => handleColSearch('code', e.target.value)}
                           placeholder="Lọc..."
-                          className="col-search"
+                          className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
                         />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                       </div>
                     </div>
                   </th>
-                  <th>
+                  <th className="text-left min-w-[200px]">
                     <div className="flex flex-col gap-1">
                       <span>Tên vật tư</span>
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         <input
                           type="text"
                           value={colSearch.name}
                           onChange={(e) => handleColSearch('name', e.target.value)}
                           placeholder="Lọc..."
-                          className="col-search"
+                          className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
                         />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                       </div>
                     </div>
                   </th>
-                  <th>
+                  <th className="text-left min-w-[140px]">
                     <div className="flex flex-col gap-1">
                       <span>Nhóm</span>
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         <input
                           type="text"
                           value={colSearch.group}
                           onChange={(e) => handleColSearch('group', e.target.value)}
                           placeholder="Lọc..."
-                          className="col-search"
+                          className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
                         />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                       </div>
                     </div>
                   </th>
-                  <th>
+                  <th className="text-left min-w-[160px]">
                     <div className="flex flex-col gap-1">
                       <span>Kho</span>
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         <input
                           type="text"
                           value={colSearch.warehouse}
                           onChange={(e) => handleColSearch('warehouse', e.target.value)}
                           placeholder="Lọc..."
-                          className="col-search"
+                          className="w-full !text-xs !py-1.5 !pl-7 !pr-2 !rounded-lg !bg-gray-50 !border-gray-200 focus:!border-blue-400 focus:!ring-1 focus:!ring-blue-100 placeholder:!text-gray-300"
                         />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                       </div>
                     </div>
                   </th>
