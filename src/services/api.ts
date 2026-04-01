@@ -14,8 +14,13 @@ export const erpService = {
   login: async (usr: string, pwd: string) => {
     const response = await api.post('/api/method/login', { usr, pwd });
     if (response.data.message === 'Logged In') {
+      // Use email as identifier — ERPNext User doctype uses email as name
       localStorage.setItem('erp_user', usr);
       localStorage.setItem('erp_full_name', response.data.full_name || usr);
+      // If login is via email (not username), store it separately for getUserInfo
+      if (usr.includes('@')) {
+        localStorage.setItem('erp_user_email', usr);
+      }
     }
     return response.data;
   },
@@ -31,17 +36,15 @@ export const erpService = {
     localStorage.removeItem('erp_user_info');
   },
 
-  // User Profile
+  // User Profile — uses detail endpoint to get child tables like roles
   getUserInfo: async () => {
     const usr = localStorage.getItem('erp_user') || '';
-    const response = await api.get('/api/resource/User', {
+    const response = await api.get(`/api/resource/User/${encodeURIComponent(usr)}`, {
       params: {
-        filters: `[["User", "email", "=", "${usr}"]]`,
-        fields: '["name", "full_name", "user_type", "enabled", "creation", "last_login", "email"]',
-        limit_page_length: 1,
+        fields: JSON.stringify(["name", "full_name", "user_type", "enabled", "creation", "last_login", "email", "roles"]),
       }
     });
-    const userData = response.data.data?.[0];
+    const userData = response.data.data;
     if (userData) {
       localStorage.setItem('erp_user_info', JSON.stringify(userData));
     }

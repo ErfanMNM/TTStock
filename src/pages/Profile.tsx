@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { erpService } from '../services/api';
-import { User, Shield, Calendar, Mail, Clock, RefreshCw, LogOut, Edit3, Check, X, ChevronRight } from 'lucide-react';
+import { User, Shield, Calendar, Mail, Clock, RefreshCw, LogOut, Edit3, Check, X, ChevronRight, Badge } from 'lucide-react';
 
 export function Profile() {
   const navigate = useNavigate();
@@ -9,6 +9,7 @@ export function Profile() {
   const [fullName, setFullName] = useState('');
   const [userInfo, setUserInfo] = useState<any>(null);
   const [loadingInfo, setLoadingInfo] = useState(false);
+  const [errorInfo, setErrorInfo] = useState('');
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
 
@@ -23,12 +24,29 @@ export function Profile() {
 
   const loadUserInfo = async () => {
     setLoadingInfo(true);
+    setErrorInfo('');
     try {
       const info = await erpService.getUserInfo();
       setUserInfo(info);
-    } catch { setUserInfo(null); }
+    } catch (e: any) {
+      setUserInfo(null);
+      const err = e as any;
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        setErrorInfo('Phiên đăng nhập đã hết hạn.');
+      } else {
+        setErrorInfo(err?.message || 'Không thể kết nối ERPNext.');
+      }
+    }
     finally { setLoadingInfo(false); }
   };
+
+  // Handle session expiry — auto-redirect to login
+  useEffect(() => {
+    const usr = localStorage.getItem('erp_user');
+    if (!usr) {
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const handleSaveName = () => {
     const trimmed = editName.trim();
@@ -140,10 +158,27 @@ export function Profile() {
                 valueColor={userInfo.enabled ? 'text-green-600' : 'text-red-500'} />
               <InfoRow icon={Calendar} label="Ngày tạo tài khoản" value={formatDate(userInfo.creation)} />
               <InfoRow icon={Clock} label="Đăng nhập gần nhất" value={formatDate(userInfo.last_login)} />
+              {userInfo.roles && userInfo.roles.length > 0 && (
+                <div className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Badge className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400">Vai trò</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {userInfo.roles.map((r: any, i: number) => (
+                        <span key={r.name || i} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600">
+                          {r.role}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-6 text-center">
-              <p className="text-sm text-gray-400">Không thể tải thông tin ERPNext.</p>
+              <p className="text-sm text-gray-400">{errorInfo || 'Không thể tải thông tin ERPNext.'}</p>
               <button onClick={loadUserInfo} className="btn-ghost !text-sm mt-2">Thử lại</button>
             </div>
           )}

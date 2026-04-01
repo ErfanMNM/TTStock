@@ -12,7 +12,13 @@
       "Bash(git config:*)",
       "Bash(npx tsc:*)",
       "Bash(npx vite:*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('roles:', d['data'].get\\('roles',[]\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('roles:', d.data.roles\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); const u=d.data; console.log\\('name:', u.name\\); console.log\\('full_name:', u.full_name\\); console.log\\('roles count:', u.roles?.length\\); console.log\\('first 3 roles:', u.roles?.slice\\(0,3\\).map\\(r=>r.role\\)\\)\")",
+      "Bash(node -e \"require\\('sharp'\\)\")",
+      "Bash(npm list:*)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.json'\\)\\)\")"
     ]
   }
 }

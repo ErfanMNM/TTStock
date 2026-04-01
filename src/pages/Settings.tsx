@@ -1,7 +1,34 @@
-import React from 'react';
-import { Server, Package, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Server, Package, Info, RefreshCw } from 'lucide-react';
+import { erpService } from '../services/api';
 
 export function Settings() {
+  const navigate = useNavigate();
+  const [connected, setConnected] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const checkConnection = async () => {
+    setChecking(true);
+    try {
+      await erpService.ping();
+      setConnected(true);
+    } catch {
+      setConnected(false);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const handleLogout = async () => {
+    await erpService.logout();
+    navigate('/login');
+  };
+
   return (
     <div className="space-y-4">
       <div className="animate-slide-up">
@@ -20,18 +47,28 @@ export function Settings() {
               <p className="text-sm font-semibold text-gray-900">Kết nối ERPNext</p>
               <p className="text-xs text-gray-400">Quản lý kết nối hệ thống</p>
             </div>
-            <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
+            <div className={`w-2.5 h-2.5 rounded-full ${connected === true ? 'bg-green-500 animate-pulse' : connected === false ? 'bg-red-500' : 'bg-gray-300'}`} />
           </div>
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">Server</span>
               <span className="text-xs font-medium text-gray-900">https://erp.mte.vn</span>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-xs text-gray-500">Trạng thái</span>
-              <span className="text-xs font-medium text-green-600">Đã kết nối</span>
+              <div className="flex items-center space-x-1.5">
+                <span className={`text-xs font-medium ${connected === true ? 'text-green-600' : connected === false ? 'text-red-500' : 'text-gray-400'}`}>
+                  {connected === true ? 'Đã kết nối' : connected === false ? 'Mất kết nối' : 'Đang kiểm tra...'}
+                </span>
+                <div className={`w-2 h-2 rounded-full ${connected === true ? 'bg-green-500' : connected === false ? 'bg-red-500' : 'bg-gray-300'} ${connected === true ? 'animate-pulse' : ''}`} />
+              </div>
             </div>
           </div>
+          <button onClick={checkConnection} disabled={checking}
+            className="w-full mt-2 flex items-center justify-center space-x-1.5 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 text-xs font-medium transition-colors disabled:opacity-50">
+            <RefreshCw className={`w-3.5 h-3.5 ${checking ? 'animate-spin' : ''}`} />
+            <span>{checking ? 'Đang kiểm tra...' : 'Kiểm tra kết nối'}</span>
+          </button>
         </div>
 
         {/* App Info */}
