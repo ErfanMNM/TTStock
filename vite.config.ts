@@ -22,7 +22,7 @@ export default defineConfig(({mode}) => {
       allowedHosts: ['stock.mte.vn', 'lt.th.io.vn'],
       proxy: {
         '/api': {
-          target: 'https://b16.localhost',
+          target: 'https://erp.mte.vn',
           changeOrigin: true,
           secure: true,
         },

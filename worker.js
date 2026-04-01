@@ -39,14 +39,24 @@ async function handleApiProxy(request, env) {
   const targetPath = url.pathname.replace('/api/', '');
   const targetUrl = `${erpTarget}/api/${targetPath}${url.search}`;
 
+  // Merge user's session cookie with optional static session cookie
+  const userCookie = request.headers.get('Cookie') || '';
+  const staticCookie = env.SESSION_COOKIE ? `; ${env.SESSION_COOKIE}` : '';
+  const mergedCookie = userCookie + staticCookie;
+
   const headers = {
     'Content-Type': request.headers.get('Content-Type') || 'application/json',
     'Accept': request.headers.get('Accept') || 'application/json',
     'X-Forwarded-Host': url.host,
+    'Origin': url.origin,
+    'Referer': url.origin + '/',
+    'X-Forwarded-For': request.headers.get('CF-Connecting-IP') || '',
+    'X-Real-IP': request.headers.get('CF-Connecting-IP') || '',
+    'User-Agent': request.headers.get('User-Agent') || '',
   };
 
-  if (env.SESSION_COOKIE) {
-    headers['Cookie'] = env.SESSION_COOKIE;
+  if (mergedCookie) {
+    headers['Cookie'] = mergedCookie;
   }
 
   try {
@@ -91,16 +101,29 @@ async function handleApiProxy(request, env) {
       });
     }
 
-    // JSON response
+    // JSON response — forward all relevant headers including Set-Cookie
+    const newHeaders = new Headers();
+    newHeaders.set('Content-Type', 'application/json');
+    newHeaders.set('Access-Control-Allow-Origin', request.headers.get('Origin') || '*');
+    newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, X-Frappe-CSRF-Token');
+    newHeaders.set('Access-Control-Allow-Credentials', 'true');
+
+    // Forward Set-Cookie headers (critical for session auth)
+    const setCookie = response.headers.get('Set-Cookie');
+    if (setCookie) {
+      newHeaders.set('Set-Cookie', setCookie);
+    }
+
+    // Forward csrf-token for POST/PUT/PATCH
+    const csrfToken = response.headers.get('csrf-token');
+    if (csrfToken) {
+      newHeaders.set('X-CSRF-Token', csrfToken);
+    }
+
     return new Response(response.body, {
       status: response.status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
-        'Access-Control-Allow-Headers': '*',
-        'Access-Control-Allow-Credentials': 'true',
-      },
+      headers: newHeaders,
     });
   } catch (err) {
     return new Response(JSON.stringify({
