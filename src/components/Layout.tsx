@@ -101,7 +101,7 @@ export function Layout() {
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar - Desktop */}
       <aside className={cn(
-        "hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex-col",
+        "hidden lg:flex fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-100 flex-col no-print",
         "transform transition-all duration-300 ease-out",
       )}>
         <div className="flex flex-col h-full">
@@ -211,7 +211,7 @@ export function Layout() {
 
       {/* Mobile Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-100 flex-col transform transition-all duration-300 ease-out lg:hidden",
+        "fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-100 flex-col transform transition-all duration-300 ease-out lg:hidden no-print",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full">
@@ -308,7 +308,7 @@ export function Layout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden lg:ml-64">
         {/* Mobile Header */}
-        <header className="lg:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 sticky top-0 z-30">
+        <header className="lg:hidden flex items-center justify-between h-14 px-4 bg-white border-b border-gray-100 sticky top-0 z-30 no-print">
           <div className="flex items-center space-x-3">
             <button onClick={() => setIsSidebarOpen(true)} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors">
               <Menu className="w-5 h-5 text-gray-600" />
@@ -333,7 +333,7 @@ export function Layout() {
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center h-16 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex justify-around items-center h-16 z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] no-print">
           {bottomNavItems.map((item) => (
             <NavLink
               key={item.name}

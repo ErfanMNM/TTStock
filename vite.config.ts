@@ -15,9 +15,9 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    // Cloudflare Pages: build to ./dist (default)
+    // Local dev server with proxy to ERPNext
     server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       allowedHosts: ['stock.mte.vn', 'lt.th.io.vn'],
       proxy: {
@@ -28,5 +28,9 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    // Set base for Cloudflare Pages deployment
+    // If deploying to a custom domain (e.g., stock.mte.vn), use '/'
+    // If deploying to a subdirectory, change to '/sub-path/'
+    base: '/',
   };
 });

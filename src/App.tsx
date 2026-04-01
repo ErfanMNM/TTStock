@@ -16,6 +16,8 @@ import { Transfers } from './pages/Transfers';
 import { TransferDetail } from './pages/TransferDetail';
 import { NewTransfer } from './pages/NewTransfer';
 import { MaterialRequests } from './pages/MaterialRequests';
+import { MaterialRequestDetail } from './pages/MaterialRequestDetail';
+import { NewMaterialRequest } from './pages/NewMaterialRequest';
 import { BOMs } from './pages/BOMs';
 import { DeliveryNotes } from './pages/DeliveryNotes';
 import { PurchaseReceipts } from './pages/PurchaseReceipts';
@@ -70,6 +72,8 @@ export default function App() {
           <Route path="transfers/:id" element={<TransferDetail />} />
           <Route path="stock/receive" element={<NewTransfer />} />
           <Route path="material-requests" element={<MaterialRequests />} />
+          <Route path="material-requests/new" element={<NewMaterialRequest />} />
+          <Route path="material-requests/:id" element={<MaterialRequestDetail />} />
           <Route path="boms" element={<BOMs />} />
           <Route path="delivery-notes" element={<DeliveryNotes />} />
           <Route path="purchase-receipts" element={<PurchaseReceipts />} />

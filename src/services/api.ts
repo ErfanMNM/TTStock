@@ -198,31 +198,45 @@ export const erpService = {
       params: {
         fields: '["name", "item_code", "warehouse", "actual_qty", "reserved_qty", "projected_qty", "stock_value", "stock_uom"]',
         filters: JSON.stringify(filters),
-        limit_page_length: 100,
+        limit_page_length: 10000,
       }
     });
-    const bins = response.data.data;
+    const bins = response.data.data || [];
 
-    // Gộp thêm item_name, item_group từ Item doctype
-    const uniqueCodes = [...new Set(bins.map((b: any) => b.item_code))];
-    if (uniqueCodes.length > 0) {
-      const itemFilters = uniqueCodes.map((code: string) => ["Item", "name", "=", code]);
-      const itemRes = await api.get(`/api/resource/Item`, {
-        params: {
-          fields: '["name", "item_name", "item_group"]',
-          filters: JSON.stringify(itemFilters),
-          limit_page_length: 100,
+    // Fetch item_name and item_group in one separate call (no per-item filter to avoid URL too long)
+    try {
+      const uniqueCodes = [...new Set(bins.map((b: any) => b.item_code).filter(Boolean))];
+      if (uniqueCodes.length > 0) {
+        // Get item groups first (lightweight, small payload)
+        const groupsRes = await api.get(`/api/resource/Item Group`, {
+          params: {
+            fields: '["name"]',
+            limit_page_length: 1000,
+          }
+        });
+        const groupSet = new Set<string>((groupsRes.data.data || []).map((g: any) => g.name));
+
+        // Get item_name & item_group without item-level filters (use LIKE on item_group instead)
+        const itemRes = await api.get(`/api/resource/Item`, {
+          params: {
+            fields: '["name", "item_name", "item_group"]',
+            limit_page_length: 10000,
+          }
+        });
+        const itemMap: Record<string, any> = {};
+        for (const item of itemRes.data.data || []) {
+          if (uniqueCodes.includes(item.name)) {
+            itemMap[item.name] = item;
+          }
         }
-      });
-      const itemMap: Record<string, any> = {};
-      for (const item of itemRes.data.data) {
-        itemMap[item.name] = item;
+        return bins.map((bin: any) => ({
+          ...bin,
+          item_name: itemMap[bin.item_code]?.item_name || null,
+          item_group: itemMap[bin.item_code]?.item_group || null,
+        }));
       }
-      return bins.map((bin: any) => ({
-        ...bin,
-        item_name: itemMap[bin.item_code]?.item_name || null,
-        item_group: itemMap[bin.item_code]?.item_group || null,
-      }));
+    } catch {
+      // Nếu fetch item thất bại, trả bins gốc
     }
     return bins;
   },
@@ -282,13 +296,6 @@ export const erpService = {
     return response.data.data?.items || [];
   },
 
-  // Submit Stock Entry
-  submitStockEntry: async (name: string) => {
-    const response = await api.put(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
-      docstatus: 1
-    });
-    return response.data.data;
-  },
 
   // Ping to check connection
   ping: async () => {
