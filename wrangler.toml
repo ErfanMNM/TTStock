@@ -7,4 +7,4 @@ compatibility_flags = ["nodejs_compat"]
 assets = { directory = "./dist", binding = "ASSETS" }
 
 [vars]
-ERP_TARGET = "https://erp.mte.vn"
+ERP_TARGET = "https://b16.localhost"
