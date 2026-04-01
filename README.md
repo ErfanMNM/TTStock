@@ -1,20 +1,58 @@
+# TTStock — Quản Lý Kho Tân Tiến
+
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+  <img width="1200" height="475" alt="TTStock Banner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+Ứng dụng quản lý kho hàng kết nối ERPNext, tối ưu cho thiết bị di động và máy tính.
 
-This contains everything you need to run your app locally.
+## Tính năng
 
-View your app in AI Studio: https://ai.studio/apps/553ae23e-a22e-4f8b-a91d-861fd46c9ef5
+- **Quản lý hàng hóa** — Xem, tạo, tìm kiếm vật tư trong kho
+- **Phiếu kho** — Tạo và duyệt phiếu nhập / xuất / chuyển kho
+- **Sổ kho** — Theo dõi tồn kho theo thời gian thực
+- **Yêu cầu vật tư** — Tạo và theo dõi yêu cầu mua hàng
+- **Thông tin tài khoản** — Xem profile, vai trò, trạng thái từ ERPNext
 
-## Run Locally
+## Công nghệ
 
-**Prerequisites:**  Node.js
+| Lớp | Công nghệ |
+|-----|-----------|
+| Frontend | React 19, React Router v7, Tailwind CSS v4 |
+| Build | Vite 6 |
+| Backend | ERPNext (erp.mte.vn) |
+| Deploy | Cloudflare Workers |
 
+## Run cục bộ
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+**Yêu cầu:** Node.js
+
+```bash
+npm install
+npm run dev
+```
+
+App sẽ chạy tại `http://localhost:3000`. Dev server proxy `/api/*` sang ERPNext.
+
+## Deploy lên Cloudflare
+
+```bash
+npm run deploy
+```
+
+Cần thiết lập secret `SESSION_COOKIE` (cookie đăng nhập ERPNext):
+
+```bash
+wrangler secret put SESSION_COOKIE
+```
+
+## Cấu trúc thư mục
+
+```
+src/
+├── pages/          # Trang chính (Login, Profile, Items, StockLedger, ...)
+├── services/
+│   └── api.ts      # ERPNext API service
+worker.js           # Cloudflare Worker (API proxy + SPA fallback)
+wrangler.toml        # Cloudflare Workers config
+```
