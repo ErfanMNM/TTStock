@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { erpService } from '../services/api';
-import { ArrowLeft, CheckCircle, Clock, Ban, Package, Warehouse, Calendar, FileText, MapPin, Printer, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Ban, Package, Warehouse, Calendar, FileText, MapPin, Printer, Loader2, User } from 'lucide-react';
 
 export function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +11,8 @@ export function TransferDetail() {
   const [companyName, setCompanyName] = useState('CÔNG TY');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [creator, setCreator] = useState<any>(null);
+  const [approver, setApprover] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -24,6 +26,16 @@ export function TransferDetail() {
         ]);
         setEntry(detailData);
         setItems(itemsData);
+
+        // Fetch creator & approver
+        const [creatorData, approverData] = await Promise.all([
+          detailData?.owner ? erpService.getUserByName(detailData.owner) : null,
+          detailData?.modified_by && detailData.modified_by !== detailData?.owner
+            ? erpService.getUserByName(detailData.modified_by)
+            : null,
+        ]);
+        setCreator(creatorData);
+        setApprover(approverData);
         if (companyData?.company_name) {
           setCompanyName(String(companyData.company_name).toUpperCase());
         }
@@ -90,41 +102,41 @@ export function TransferDetail() {
     <div className="space-y-4 animate-slide-up">
 
       {/* ── Toolbar (ẩn khi in) ── */}
-      <div className="flex items-center justify-between no-print">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 no-print">
+        <div className="flex flex-wrap items-center gap-3">
           <button onClick={() => navigate('/transfers')} className="btn-ghost !rounded-xl !p-2">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-gray-900">{entry.name}</h1>
-              {entry.docstatus === 1 ? (
-                <span className="chip chip-green"><CheckCircle className="w-3.5 h-3.5 mr-0.5" /> Đã duyệt</span>
-              ) : entry.docstatus === 0 ? (
-                <span className="chip chip-yellow"><Clock className="w-3.5 h-3.5 mr-0.5" /> Nháp</span>
-              ) : (
-                <span className="chip chip-red"><Ban className="w-3.5 h-3.5 mr-0.5" /> Đã hủy</span>
-              )}
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">{getTypeLabel(entry.stock_entry_type)}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">{entry.name}</h1>
+            {entry.docstatus === 1 ? (
+              <span className="chip chip-green"><CheckCircle className="w-3.5 h-3.5 mr-0.5" /> Đã duyệt</span>
+            ) : entry.docstatus === 0 ? (
+              <span className="chip chip-yellow"><Clock className="w-3.5 h-3.5 mr-0.5" /> Nháp</span>
+            ) : (
+              <span className="chip chip-red"><Ban className="w-3.5 h-3.5 mr-0.5" /> Đã hủy</span>
+            )}
           </div>
+          <p className="text-xs text-gray-400 mt-0.5">{getTypeLabel(entry.stock_entry_type)}</p>
         </div>
-        {entry.docstatus === 0 && (
-          <button onClick={handleSubmit} disabled={submitting} className="btn-primary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
-            {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-            {submitting ? 'Đang duyệt...' : 'Duyệt phiếu'}
+        <div className="flex items-center gap-2">
+          {entry.docstatus === 0 && (
+            <button onClick={handleSubmit} disabled={submitting} className="btn-primary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+              {submitting ? 'Đang duyệt...' : 'Duyệt phiếu'}
+            </button>
+          )}
+          <button onClick={() => window.print()} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
+            <Printer className="w-3.5 h-3.5" />
+            In phiếu
           </button>
-        )}
-        <button onClick={() => window.print()} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
-          <Printer className="w-3.5 h-3.5" />
-          In phiếu
-        </button>
+        </div>
       </div>
 
       {/* ── Web View (ẩn khi in) ── */}
-      <div className="web-view">
+      <div className="web-view space-y-4">
         {/* ── Thông tin ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 lg:gap-8">
           <div className="card p-4 flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
               <Calendar className="w-4 h-4 text-blue-500" />
@@ -167,6 +179,36 @@ export function TransferDetail() {
           )}
         </div>
 
+        {/* ── Người tạo / duyệt ── */}
+        {(creator || approver) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {creator && (
+              <div className="card p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Người tạo</p>
+                  <p className="text-sm font-semibold text-gray-900">{creator.full_name || creator.name}</p>
+                  {creator.email && <p className="text-xs text-gray-400">{creator.email}</p>}
+                </div>
+              </div>
+            )}
+            {approver && (
+              <div className="card p-4 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Người duyệt</p>
+                  <p className="text-sm font-semibold text-gray-900">{approver.full_name || approver.name}</p>
+                  {approver.email && <p className="text-xs text-gray-400">{approver.email}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
       {/* ── Bảng vật tư ── */}
       <div className="card overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100">
@@ -185,7 +227,7 @@ export function TransferDetail() {
                 <th className="text-center">Đơn vị</th>
                 <th className="text-right">Số lượng</th>
                 <th className="text-right">Đơn giá</th>
-                <th className="text-right">Thành tiền</th>
+                <th className="text-right pr-4">Thành tiền</th>
               </tr>
             </thead>
             <tbody>
@@ -194,7 +236,7 @@ export function TransferDetail() {
                   <td className="text-center text-gray-400 text-xs">{idx + 1}</td>
                   <td className="font-mono font-semibold text-blue-600">{item.item_code}</td>
                   <td className="font-medium text-gray-900">{item.item_name || item.item_code}</td>
-                  <td className="text-center"><span className="chip chip-green !text-xs">{item.uom || '—'}</span></td>
+                  <td className="text-center"><span className="chip chip-green !text-xs !px-2.5">{item.uom || '—'}</span></td>
                   <td className="text-right font-semibold text-gray-900">{formatNumber(item.qty)}</td>
                   <td className="text-right text-gray-500">{formatNumber(item.basic_rate)}</td>
                   <td className="text-right font-semibold text-gray-900">{formatNumber(item.amount)}</td>
@@ -212,7 +254,7 @@ export function TransferDetail() {
                   <td colSpan={4} className="text-right">Tổng cộng</td>
                   <td className="text-right font-bold text-blue-700">{formatNumber(totalQty)}</td>
                   <td></td>
-                  <td className="text-right font-bold text-blue-700">{formatNumber(totalAmount)}</td>
+                  <td className="text-right font-bold text-blue-700 pr-4">{formatNumber(totalAmount)}</td>
                 </tr>
               </tfoot>
             )}
@@ -302,14 +344,6 @@ export function TransferDetail() {
           </div>
           <div className="ph-sig-cell">
             <div className="ph-sig-title">Thủ kho</div>
-            <div className="ph-sig-line"></div>
-          </div>
-          <div className="ph-sig-cell">
-            <div className="ph-sig-title">Kế toán trưởng</div>
-            <div className="ph-sig-line"></div>
-          </div>
-          <div className="ph-sig-cell">
-            <div className="ph-sig-title">Giám đốc</div>
             <div className="ph-sig-line"></div>
           </div>
         </div>

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
 import { Search, Package, Plus, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Image as ImageIcon, Filter, ChevronDown, Download, FileSpreadsheet, Printer, ArrowUp, ArrowDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { exportToCsv, printPage } from '../lib/export';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
 export function Items() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [allItems, setAllItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -328,24 +329,6 @@ export function Items() {
           <div className="flex items-center justify-center h-48">
             <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
-        ) : sorted.length === 0 ? (
-          <div className="card p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Package className="w-8 h-8 text-gray-300" />
-            </div>
-            <p className="text-sm font-medium text-gray-500">{search || hasActiveFilters ? 'Không tìm thấy vật tư nào phù hợp.' : 'Chưa có vật tư nào.'}</p>
-            {(search || hasActiveFilters) && (
-              <button onClick={clearAllFilters} className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
-                Xóa bộ lọc
-              </button>
-            )}
-            {!search && !hasActiveFilters && (
-              <Link to="/items/new" className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
-                <Plus className="w-4 h-4 mr-1.5" />
-                Thêm vật tư đầu tiên
-              </Link>
-            )}
-          </div>
         ) : (
           <>
             <div className="card overflow-hidden">
@@ -429,32 +412,54 @@ export function Items() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginated.map((item, i) => (
-                      <tr
-                        key={item.name}
-                        className="group cursor-pointer animate-slide-up"
-                        style={{ animationDelay: `${i * 10}ms` }}
-                        onClick={() => window.location.href = `/items/${encodeURIComponent(item.name)}`}
-                      >
-                        <td className="w-14">
-                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-                            {item.image ? (
-                              <img src={`https://erp.mte.vn${item.image}`} alt={item.item_name} className="w-full h-full object-cover" />
-                            ) : (
-                              <ImageIcon className="w-4 h-4 text-gray-300" />
-                            )}
+                    {sorted.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-12">
+                          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <Package className="w-8 h-8 text-gray-300" />
                           </div>
-                        </td>
-                        <td className="font-mono font-semibold text-blue-600">{item.name}</td>
-                        <td className="font-medium text-gray-900 max-w-[240px] truncate">{item.item_name}</td>
-                        <td>
-                          <span className="chip chip-gray !text-xs">{item.item_group || '—'}</span>
-                        </td>
-                        <td className="text-center">
-                          <span className="chip chip-green !text-xs">{item.stock_uom || '—'}</span>
+                          <p className="text-sm font-medium text-gray-500">{search || hasActiveFilters ? 'Không tìm thấy vật tư nào phù hợp.' : 'Chưa có vật tư nào.'}</p>
+                          {(search || hasActiveFilters) && (
+                            <button onClick={clearAllFilters} className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
+                              Xóa bộ lọc
+                            </button>
+                          )}
+                          {!search && !hasActiveFilters && (
+                            <Link to="/items/new" className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
+                              <Plus className="w-4 h-4 mr-1.5" />
+                              Thêm vật tư đầu tiên
+                            </Link>
+                          )}
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      paginated.map((item, i) => (
+                        <tr
+                          key={item.name}
+                          className="group cursor-pointer animate-slide-up"
+                          style={{ animationDelay: `${i * 10}ms` }}
+                          onClick={() => navigate(`/items/${encodeURIComponent(item.name)}`)}
+                        >
+                          <td className="w-14">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                              {item.image ? (
+                                <img src={`https://erp.mte.vn${item.image}`} alt={item.item_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <ImageIcon className="w-4 h-4 text-gray-300" />
+                              )}
+                            </div>
+                          </td>
+                          <td className="font-mono font-semibold text-blue-600">{item.name}</td>
+                          <td className="font-medium text-gray-900 max-w-[240px] truncate">{item.item_name}</td>
+                          <td>
+                            <span className="chip chip-gray !text-xs">{item.item_group || '—'}</span>
+                          </td>
+                          <td className="text-center">
+                            <span className="chip chip-green !text-xs">{item.stock_uom || '—'}</span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

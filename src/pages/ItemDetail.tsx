@@ -6,11 +6,13 @@ import {
   ArrowDownLeft, ArrowUpRight, Tag, Building, Calendar, User,
   Scale, Shield, Truck, CheckCircle, Clock, BarChart3, ExternalLink,
   ChevronDown, ClipboardList, MoreHorizontal, TrendingUp, AlertTriangle,
-  DollarSign, Box, Layers, GripVertical
+  DollarSign, Box, Layers, GripVertical, History, ArrowRightLeft,
+  Search, X, Filter, ArrowDown, ArrowUp, ChevronLeft, ChevronRight,
+  ChevronsLeft, ChevronsRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-type Tab = 'overview' | 'inventory' | 'trade' | 'system';
+type Tab = 'overview' | 'inventory' | 'history' | 'trade' | 'system';
 
 export function ItemDetail() {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +24,13 @@ export function ItemDetail() {
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true, stock: true, other: false, system: false,
   });
+
+  // History / Stock Ledger
+  const [ledger, setLedger] = useState<any[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerPage, setLedgerPage] = useState(0);
+  const [ledgerPageSize] = useState(30);
 
   useEffect(() => {
     if (!id) return;
@@ -42,6 +51,23 @@ export function ItemDetail() {
     };
     load();
   }, [id]);
+
+  // Fetch stock ledger when history tab is active
+  useEffect(() => {
+    if (activeTab !== 'history' || !id) return;
+    const loadLedger = async () => {
+      setLedgerLoading(true);
+      try {
+        const data = await erpService.getStockLedger(decodeURIComponent(id));
+        setLedger(data);
+      } catch {
+        setLedger([]);
+      } finally {
+        setLedgerLoading(false);
+      }
+    };
+    loadLedger();
+  }, [activeTab, id]);
 
   const toggleSection = (key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -69,6 +95,7 @@ export function ItemDetail() {
   const tabs: { key: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { key: 'overview', label: 'Tổng quan', icon: BarChart3 },
     { key: 'inventory', label: 'Tồn kho', icon: Warehouse },
+    { key: 'history', label: 'Lịch sử', icon: History },
     { key: 'trade', label: 'Mua / Bán', icon: Truck },
     { key: 'system', label: 'Hệ thống', icon: User },
   ];
@@ -498,6 +525,201 @@ export function ItemDetail() {
                 <p className="text-sm font-medium text-gray-500">Không có dữ liệu tồn kho</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* History / Stock Ledger Tab */}
+        {activeTab === 'history' && (
+          <div className="space-y-4">
+            <div className="card p-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                <History className="w-4 h-4 text-gray-400" />
+                Lịch sử nhập xuất
+              </h3>
+              <p className="text-xs text-gray-400 mb-4">{ledger.length} giao dịch</p>
+
+              {/* Search */}
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={ledgerSearch}
+                  onChange={(e) => { setLedgerSearch(e.target.value); setLedgerPage(0); }}
+                  placeholder="Tìm kiếm phiếu, kho..."
+                  className="input-field !rounded-xl !py-2.5 !pl-10 !pr-10 !text-sm"
+                />
+                {ledgerSearch && (
+                  <button onClick={() => { setLedgerSearch(''); setLedgerPage(0); }} className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300">
+                    <X className="w-3.5 h-3.5 text-gray-500" />
+                  </button>
+                )}
+              </div>
+
+              {ledgerLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                </div>
+              ) : (
+                <>
+                  {/* Filtered + paginated data */}
+                  {(() => {
+                    const filtered = ledger.filter(entry => {
+                      if (!ledgerSearch) return true;
+                      const q = ledgerSearch.toLowerCase();
+                      return (
+                        (entry.voucher_no || '').toLowerCase().includes(q) ||
+                        (entry.voucher_type || '').toLowerCase().includes(q) ||
+                        (entry.warehouse || '').toLowerCase().includes(q)
+                      );
+                    });
+
+                    const totalPages = Math.ceil(filtered.length / ledgerPageSize) || 1;
+                    const pages: (number | string)[] = [];
+                    if (totalPages <= 7) {
+                      for (let i = 0; i < totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(0);
+                      if (ledgerPage > 2) pages.push('...');
+                      for (let i = Math.max(1, ledgerPage - 1); i <= Math.min(totalPages - 2, ledgerPage + 1); i++) pages.push(i);
+                      if (ledgerPage < totalPages - 3) pages.push('...');
+                      pages.push(totalPages - 1);
+                    }
+
+                    const start = ledgerPage * ledgerPageSize;
+                    const paginated = filtered.slice(start, start + ledgerPageSize);
+
+                    return (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="data-table">
+                            <thead>
+                              <tr>
+                                <th className="text-left">Ngày</th>
+                                <th className="text-left">Giờ</th>
+                                <th className="text-left">Loại phiếu</th>
+                                <th className="text-left">Số phiếu</th>
+                                <th className="text-left">Kho</th>
+                                <th className="text-right">SL nhập</th>
+                                <th className="text-right">SL xuất</th>
+                                <th className="text-right">Giá nhập</th>
+                                <th className="text-right">Giá xuất</th>
+                                <th className="text-right">Tồn sau</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filtered.length === 0 ? (
+                                <tr>
+                                  <td colSpan={10} className="text-center py-12">
+                                    <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                      <History className="w-6 h-6 text-gray-300" />
+                                    </div>
+                                    <p className="text-sm font-medium text-gray-500">Không có giao dịch nào.</p>
+                                  </td>
+                                </tr>
+                              ) : (
+                                paginated.map((entry, idx) => {
+                                  const isIn = (entry.actual_qty || 0) > 0;
+                                  const dateStr = entry.posting_date
+                                    ? new Date(entry.posting_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                                    : '—';
+                                  const timeStr = entry.posting_time
+                                    ? new Date(`2000-01-01T${entry.posting_time}`).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+                                    : '—';
+                                  return (
+                                    <tr key={entry.name || idx} className="animate-slide-up" style={{ animationDelay: `${idx * 5}ms` }}>
+                                      <td className="text-gray-500 text-xs">{dateStr}</td>
+                                      <td className="text-gray-400 text-xs">{timeStr}</td>
+                                      <td>
+                                        <span className={cn(
+                                          "chip !text-xs",
+                                          entry.voucher_type === 'Purchase Receipt' ? 'chip-green' :
+                                          entry.voucher_type === 'Delivery Note' ? 'chip-blue' :
+                                          entry.voucher_type === 'Stock Entry' ? 'chip-purple' :
+                                          'chip-gray'
+                                        )}>
+                                          {entry.voucher_type || '—'}
+                                        </span>
+                                      </td>
+                                      <td>
+                                        <a
+                                          href={`https://erp.mte.vn/app/${(entry.voucher_type || '').toLowerCase().replace(/ /g, '-')}/${entry.voucher_no}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="font-mono text-xs text-blue-600 hover:underline"
+                                        >
+                                          {entry.voucher_no || '—'}
+                                        </a>
+                                      </td>
+                                      <td className="text-xs text-gray-600 max-w-[120px] truncate">{entry.warehouse || '—'}</td>
+                                      <td className="text-right text-emerald-600 font-semibold">
+                                        {entry.actual_qty > 0 ? `+${formatNumber(entry.actual_qty)}` : '—'}
+                                      </td>
+                                      <td className="text-right text-red-500 font-semibold">
+                                        {entry.actual_qty < 0 ? formatNumber(Math.abs(entry.actual_qty)) : '—'}
+                                      </td>
+                                      <td className="text-right text-gray-500 text-xs">
+                                        {entry.incoming_rate > 0 ? formatNumber(entry.incoming_rate) : '—'}
+                                      </td>
+                                      <td className="text-right text-gray-500 text-xs">
+                                        {entry.outgoing_rate > 0 ? formatNumber(entry.outgoing_rate) : '—'}
+                                      </td>
+                                      <td className="text-right font-semibold text-gray-700">
+                                        {entry.qty_after_transaction !== null && entry.qty_after_transaction !== undefined
+                                          ? formatNumber(entry.qty_after_transaction)
+                                          : '—'}
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        {filtered.length > ledgerPageSize && (
+                          <div className="flex items-center justify-between mt-3 px-1">
+                            <span className="text-xs text-gray-400">
+                              {start + 1}–{Math.min(start + ledgerPageSize, filtered.length)} / {filtered.length}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button onClick={() => { setLedgerPage(0); }} disabled={ledgerPage === 0} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                <ChevronsLeft className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => setLedgerPage(p => p - 1)} disabled={ledgerPage === 0} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                              </button>
+                              {pages.map((p, idx) =>
+                                p === '...' ? (
+                                  <span key={`e-${idx}`} className="w-7 h-7 flex items-center justify-center text-gray-400 text-xs">…</span>
+                                ) : (
+                                  <button
+                                    key={p}
+                                    onClick={() => setLedgerPage(p as number)}
+                                    className={cn(
+                                      "w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold",
+                                      p === ledgerPage ? "bg-blue-500 text-white" : "border border-gray-200 text-gray-500 hover:bg-gray-50"
+                                    )}
+                                  >
+                                    {(p as number) + 1}
+                                  </button>
+                                )
+                              )}
+                              <button onClick={() => setLedgerPage(p => p + 1)} disabled={ledgerPage >= totalPages - 1} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => { setLedgerPage(totalPages - 1); }} disabled={ledgerPage >= totalPages - 1} className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">
+                                <ChevronsRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
+              )}
+            </div>
           </div>
         )}
 

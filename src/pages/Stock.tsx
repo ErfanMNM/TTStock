@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
 import { Search, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Download, X, Warehouse, Printer, ArrowUp, ArrowDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { exportToCsv, printPage } from '../lib/export';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
 export function Stock() {
+  const navigate = useNavigate();
   const [stock, setStock] = useState<any[]>([]);
   const [allStock, setAllStock] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,18 +286,6 @@ export function Stock() {
           <div className="flex items-center justify-center h-48">
             <div className="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
           </div>
-        ) : sorted.length === 0 ? (
-          <div className="card p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Package className="w-8 h-8 text-gray-300" />
-            </div>
-            <p className="text-sm font-medium text-gray-500">{search || hasActiveFilters ? 'Không tìm thấy kết quả phù hợp.' : 'Không có dữ liệu tồn kho.'}</p>
-            {(search || hasActiveFilters) && (
-              <button onClick={clearAllFilters} className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
-                Xóa bộ lọc
-              </button>
-            )}
-          </div>
         ) : (
           <>
             <div className="card overflow-hidden">
@@ -384,27 +374,48 @@ export function Stock() {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginated.map((bin, idx) => (
-                      <tr key={bin.name} className="animate-slide-up" style={{ animationDelay: `${idx * 10}ms` }}>
-                        <td className="text-center text-gray-400 text-xs">
-                          {page * pageSize + idx + 1}
-                        </td>
-                        <td className="font-medium text-blue-600">{bin.item_code || '—'}</td>
-                        <td className="text-gray-700">{bin.item_name || '—'}</td>
-                        <td>
-                          <span className="chip chip-gray !text-xs">{bin.item_group || '—'}</span>
-                        </td>
-                        <td>
-                          <div className="flex items-center gap-1.5">
-                            <Warehouse className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                            <span className="truncate">{bin.warehouse || '—'}</span>
+                    {sorted.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="text-center py-12">
+                          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                            <Package className="w-8 h-8 text-gray-300" />
                           </div>
-                        </td>
-                        <td className="text-right font-semibold text-blue-600">
-                          {bin.actual_qty?.toLocaleString() || 0}
+                          <p className="text-sm font-medium text-gray-500">{search || hasActiveFilters ? 'Không tìm thấy kết quả phù hợp.' : 'Không có dữ liệu tồn kho.'}</p>
+                          {(search || hasActiveFilters) && (
+                            <button onClick={clearAllFilters} className="btn-primary !rounded-xl !px-5 !py-2.5 !text-sm mt-4 inline-flex">
+                              Xóa bộ lọc
+                            </button>
+                          )}
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      paginated.map((bin, idx) => (
+                        <tr
+                          key={bin.name}
+                          className="cursor-pointer animate-slide-up hover:bg-blue-50/50"
+                          style={{ animationDelay: `${idx * 10}ms` }}
+                          onClick={() => navigate(`/items/${encodeURIComponent(bin.item_code)}`)}
+                        >
+                          <td className="text-center text-gray-400 text-xs">
+                            {page * pageSize + idx + 1}
+                          </td>
+                          <td className="font-medium text-blue-600">{bin.item_code || '—'}</td>
+                          <td className="text-gray-700">{bin.item_name || '—'}</td>
+                          <td>
+                            <span className="chip chip-gray !text-xs">{bin.item_group || '—'}</span>
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-1.5">
+                              <Warehouse className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                              <span className="truncate">{bin.warehouse || '—'}</span>
+                            </div>
+                          </td>
+                          <td className="text-right font-semibold text-blue-600">
+                            {bin.actual_qty?.toLocaleString() || 0}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

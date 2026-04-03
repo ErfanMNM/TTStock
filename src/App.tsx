@@ -23,6 +23,8 @@ import { DeliveryNotes } from './pages/DeliveryNotes';
 import { PurchaseReceipts } from './pages/PurchaseReceipts';
 import { PickList } from './pages/PickList';
 import { StockReconciliation } from './pages/StockReconciliation';
+import { StockReconciliationDetail } from './pages/StockReconciliationDetail';
+import { NewStockReconciliation } from './pages/NewStockReconciliation';
 import { StockAnalytics } from './pages/StockAnalytics';
 import { ItemGroups } from './pages/ItemGroups';
 import { Brands } from './pages/Brands';
@@ -79,6 +81,8 @@ export default function App() {
           <Route path="purchase-receipts" element={<PurchaseReceipts />} />
           <Route path="pick-list" element={<PickList />} />
           <Route path="stock-reconciliation" element={<StockReconciliation />} />
+          <Route path="stock-reconciliation/new" element={<NewStockReconciliation />} />
+          <Route path="stock-reconciliation/:id" element={<StockReconciliationDetail />} />
           <Route path="stock-analytics" element={<StockAnalytics />} />
           <Route path="item-groups" element={<ItemGroups />} />
           <Route path="brands" element={<Brands />} />

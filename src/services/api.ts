@@ -9,6 +9,18 @@ export const api = axios.create({
   },
 });
 
+// DEBUG: raw fetch for troubleshooting
+export async function debugFetchBin(warehouse: string) {
+  const response = await api.get('/api/resource/Bin', {
+    params: {
+      fields: JSON.stringify(["name", "item_code", "warehouse", "actual_qty"]),
+      filters: JSON.stringify([["Bin", "warehouse", "=", warehouse]]),
+      limit_page_length: 5,
+    }
+  });
+  return response.data;
+}
+
 export const erpService = {
   // Authentication
   login: async (usr: string, pwd: string) => {
@@ -51,6 +63,15 @@ export const erpService = {
     return userData;
   },
 
+  getUserByName: async (username: string) => {
+    const response = await api.get(`/api/resource/User/${encodeURIComponent(username)}`, {
+      params: {
+        fields: JSON.stringify(["name", "full_name", "email"]),
+      }
+    });
+    return response.data.data;
+  },
+
   // Items
   getItems: async (limit = 20, start = 0, search = '') => {
     const filters = search ? `[["Item", "item_name", "like", "%${search}%"]]` : '[]';
@@ -63,6 +84,27 @@ export const erpService = {
       }
     });
     return response.data.data;
+  },
+
+  getItemsWithStock: async (warehouse?: string) => {
+    // Get all items
+    const [itemsRes, stockRes] = await Promise.all([
+      api.get('/api/resource/Item', {
+        params: { fields: '["name", "item_name", "item_group", "image", "stock_uom"]', limit_page_length: 10000 }
+      }),
+      warehouse ? getStockBalance(warehouse) : Promise.resolve([]),
+    ]);
+
+    const items = itemsRes.data.data || [];
+    const stockMap: Record<string, number> = {};
+    for (const row of stockRes) {
+      stockMap[row.item_code] = row.actual_qty || 0;
+    }
+
+    return items.map((item: any) => ({
+      ...item,
+      actual_qty: stockMap[item.name] ?? 0,
+    }));
   },
 
   getItemDetails: async (itemName: string) => {
@@ -206,42 +248,29 @@ export const erpService = {
     });
     const bins = response.data.data || [];
 
-    // Fetch item_name and item_group in one separate call (no per-item filter to avoid URL too long)
-    try {
-      const uniqueCodes = [...new Set(bins.map((b: any) => b.item_code).filter(Boolean))];
-      if (uniqueCodes.length > 0) {
-        // Get item groups first (lightweight, small payload)
-        const groupsRes = await api.get(`/api/resource/Item Group`, {
-          params: {
-            fields: '["name"]',
-            limit_page_length: 1000,
-          }
-        });
-        const groupSet = new Set<string>((groupsRes.data.data || []).map((g: any) => g.name));
+    // Enrich with item_name and item_group
+    const uniqueCodes = [...new Set(bins.map((b: any) => b.item_code).filter(Boolean))];
+    if (uniqueCodes.length === 0) return bins;
 
-        // Get item_name & item_group without item-level filters (use LIKE on item_group instead)
-        const itemRes = await api.get(`/api/resource/Item`, {
-          params: {
-            fields: '["name", "item_name", "item_group"]',
-            limit_page_length: 10000,
-          }
-        });
-        const itemMap: Record<string, any> = {};
-        for (const item of itemRes.data.data || []) {
-          if (uniqueCodes.includes(item.name)) {
-            itemMap[item.name] = item;
-          }
-        }
-        return bins.map((bin: any) => ({
-          ...bin,
-          item_name: itemMap[bin.item_code]?.item_name || null,
-          item_group: itemMap[bin.item_code]?.item_group || null,
-        }));
+    // Fetch item details for unique codes
+    const itemRes = await api.get(`/api/resource/Item`, {
+      params: {
+        fields: '["name", "item_name", "item_group"]',
+        filters: JSON.stringify([['Item', 'name', 'in', uniqueCodes]]),
+        limit_page_length: 10000,
       }
-    } catch {
-      // Nếu fetch item thất bại, trả bins gốc
+    });
+
+    const itemMap: Record<string, any> = {};
+    for (const item of itemRes.data.data || []) {
+      itemMap[item.name] = item;
     }
-    return bins;
+
+    return bins.map((bin: any) => ({
+      ...bin,
+      item_name: itemMap[bin.item_code]?.item_name || null,
+      item_group: itemMap[bin.item_code]?.item_group || null,
+    }));
   },
 
   // Stock Entries (Receipts, Issues, Transfers)
@@ -299,6 +328,94 @@ export const erpService = {
     return response.data.data?.items || [];
   },
 
+
+  // Stock Ledger (Transaction History)
+  getStockLedger: async (itemCode?: string, fromDate?: string, toDate?: string) => {
+    const filters: any[] = [];
+    if (itemCode) filters.push(["Stock Ledger Entry", "item_code", "=", itemCode]);
+    if (fromDate) filters.push(["Stock Ledger Entry", "posting_date", ">=", fromDate]);
+    if (toDate) filters.push(["Stock Ledger Entry", "posting_date", "<=", toDate]);
+
+    const response = await api.get('/api/resource/Stock Ledger Entry', {
+      params: {
+        fields: JSON.stringify([
+          "name", "posting_date", "posting_time",
+          "voucher_type", "voucher_no", "incoming_rate", "outgoing_rate",
+          "qty_after_transaction", "stock_value", "stock_value_difference",
+          "warehouse", "company", "item_code",
+          "valuation_rate", "actual_qty", "basic_rate", "basic_amount",
+          "creation",
+        ]),
+        filters: JSON.stringify(filters),
+        order_by: "posting_date desc, posting_time desc",
+        limit_page_length: 200,
+      }
+    });
+    return response.data.data || [];
+  },
+
+  // Stock Reconciliation
+  getStockReconciliations: async (limit = 50, page = 0, search = '') => {
+    const params: any = {
+      fields: JSON.stringify(['name', 'purpose', 'posting_date', 'docstatus', 'amended_from', 'creation', 'owner', 'modified_by']),
+      order_by: 'creation desc',
+      limit_page_length: limit,
+      limit_start: page * limit,
+    };
+    if (search) {
+      params.filters = JSON.stringify([['Stock Reconciliation', 'name', 'like', `%${search}%`]]);
+    }
+    const response = await api.get('/api/resource/Stock Reconciliation', { params });
+    return response.data.data || [];
+  },
+
+  getStockReconciliationCount: async (search = '') => {
+    const params: any = {
+      fields: '["name"]',
+      limit_page_length: 0,
+    };
+    if (search) {
+      params.filters = JSON.stringify([['Stock Reconciliation', 'name', 'like', `%${search}%`]]);
+    }
+    const response = await api.get('/api/resource/Stock Reconciliation', { params });
+    return response.data.data?.length || 0;
+  },
+
+  getStockReconciliationDetails: async (name: string) => {
+    const response = await api.get(`/api/resource/Stock Reconciliation/${encodeURIComponent(name)}`, {
+      params: {
+        fields: JSON.stringify([
+          'name', 'purpose', 'posting_date', 'docstatus', 'remarks',
+          'company', 'creation', 'owner', 'modified_by',
+        ]),
+      }
+    });
+    return response.data.data;
+  },
+
+  createStockReconciliation: async (data: any) => {
+    const response = await api.post('/api/resource/Stock Reconciliation', {
+      data,
+    });
+    return response.data.data;
+  },
+
+  getStockReconciliationItems: async (name: string) => {
+    const response = await api.get(`/api/resource/Stock Reconciliation/${encodeURIComponent(name)}`, {
+      params: {
+        fields: '["items"]',
+      }
+    });
+    return response.data.data?.items || [];
+  },
+
+  submitStockReconciliation: async (name: string) => {
+    const response = await api.post('/api/method/frappe.client.submit', new URLSearchParams({
+      doctype: 'Stock Reconciliation',
+      name,
+    }));
+    return response.data.data;
+  },
 
   // Ping to check connection
   ping: async () => {
