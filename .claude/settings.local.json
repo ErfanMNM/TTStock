@@ -18,7 +18,20 @@
       "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); const u=d.data; console.log\\('name:', u.name\\); console.log\\('full_name:', u.full_name\\); console.log\\('roles count:', u.roles?.length\\); console.log\\('first 3 roles:', u.roles?.slice\\(0,3\\).map\\(r=>r.role\\)\\)\")",
       "Bash(node -e \"require\\('sharp'\\)\")",
       "Bash(npm list:*)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.json'\\)\\)\")"
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('public/manifest.json'\\)\\)\")",
+      "WebFetch(domain:localhost)",
+      "WebFetch(domain:erp.mte.vn)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(w['name'], '|', w['warehouse_name'], '|', w.get\\('is_group'\\)\\) for w in d['data'] if not w.get\\('is_group'\\)]\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); d.data.filter\\(w=>!w.is_group\\).forEach\\(w=>console.log\\(w.name,'|',w.warehouse_name\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('BIN count:', d.data.length\\); d.data.slice\\(0,10\\).forEach\\(b=>console.log\\(b.item_code, '|', b.actual_qty, '|', b.warehouse\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('Total Bin rows:', d.data.length\\); const wh={}; d.data.forEach\\(b=>{if\\(!wh[b.warehouse]\\)wh[b.warehouse]=[]; wh[b.warehouse].push\\({code:b.item_code,qty:b.actual_qty}\\)}\\); Object.entries\\(wh\\).forEach\\(\\([k,v]\\)=>console.log\\(k,':',v.length,'items'\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('SLE for Stores-TanTien count:', d.data.length\\); d.data.slice\\(0,15\\).forEach\\(s=>console.log\\(s.item_code, '|', s.qty_after_transaction, '|', s.warehouse, '|', s.voucher_type\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('=== BIN \\(Kho vật tư - thiết bị\\) ==='\\); d.data.slice\\(0,15\\).forEach\\(b=>console.log\\(b.item_code,'|',b.actual_qty\\)\\)\")",
+      "Bash(node -e ':*)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\('Companies:', JSON.stringify\\(d.data\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(JSON.stringify\\(d.data,null,2\\)\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); d.data.forEach\\(i=>console.log\\('name:',i.name,'item_name:',i.item_name\\)\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\), null, 2\\)\\)\")"
     ]
   }
 }

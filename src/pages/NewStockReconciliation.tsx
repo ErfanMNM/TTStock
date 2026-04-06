@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { erpService, debugFetchBin } from '../services/api';
+import { erpService } from '../services/api';
 import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, AlertCircle, Search, X,
-  Package, ChevronLeft, ChevronRight, Image as ImageIcon, Scale,
+  Package, ChevronLeft, ChevronRight, Scale,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -60,36 +60,32 @@ export function NewStockReconciliation() {
 
   // Fetch stock balance when warehouse changes and update items
   useEffect(() => {
+    let cancelled = false;
     const fetchStock = async () => {
       if (!formData.warehouse) { setStockData({}); return; }
       try {
-        // Debug: raw call
-        const raw = await debugFetchBin(formData.warehouse);
-        console.log('[DEBUG] Raw Bin API response:', JSON.stringify(raw).substring(0, 500));
-        console.log('[DEBUG] response.data:', raw.data);
-
         const data = await erpService.getStockBalance(formData.warehouse, '');
-        console.log('[DEBUG] getStockBalance result:', data.length, 'bins');
+        if (cancelled) return;
         const map: Record<string, number> = {};
         for (const row of data) {
           map[row.item_code] = row.actual_qty || 0;
         }
         setStockData(map);
-
-        setAllItems((prev: any[]) => prev.map((item: any) => ({
-          ...item,
-          actual_qty: map[item.name] ?? 0,
-        })));
       } catch (err: any) {
         console.error('[DEBUG] fetchStock error:', err?.response?.data || err);
-        setStockData({});
+        if (!cancelled) setStockData({});
       }
     };
     fetchStock();
+    return () => { cancelled = true; };
   }, [formData.warehouse]);
 
   const filteredPickerItems = useMemo(() => {
     let items = allItems;
+    // Only show items that exist in the selected warehouse (have a Bin record)
+    if (formData.warehouse) {
+      items = items.filter(i => i.name in stockData);
+    }
     if (pickerSearch) {
       const q = pickerSearch.toLowerCase();
       items = items.filter(i =>
@@ -99,7 +95,7 @@ export function NewStockReconciliation() {
       );
     }
     return items;
-  }, [allItems, pickerSearch]);
+  }, [allItems, pickerSearch, formData.warehouse, stockData]);
 
   const pickerPageItems = filteredPickerItems.slice(pickerPage * PICKER_SIZE, (pickerPage + 1) * PICKER_SIZE);
   const pickerHasMore = filteredPickerItems.length > (pickerPage + 1) * PICKER_SIZE;
@@ -468,7 +464,7 @@ export function NewStockReconciliation() {
                   <div className="space-y-1">
                     {pickerPageItems.map((item) => {
                       const alreadyAdded = formData.items.some(i => i.item_code === item.name);
-                      const currentQty = item.actual_qty ?? 0;
+                      const currentQty = stockData[item.name] ?? 0;
                       return (
                         <button
                           key={item.name}

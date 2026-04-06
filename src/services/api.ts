@@ -87,17 +87,22 @@ export const erpService = {
   },
 
   getItemsWithStock: async (warehouse?: string) => {
-    // Get all items
     const [itemsRes, stockRes] = await Promise.all([
       api.get('/api/resource/Item', {
         params: { fields: '["name", "item_name", "item_group", "image", "stock_uom"]', limit_page_length: 10000 }
       }),
-      warehouse ? getStockBalance(warehouse) : Promise.resolve([]),
+      warehouse ? api.get('/api/resource/Bin', {
+        params: {
+          fields: '["item_code", "actual_qty"]',
+          filters: JSON.stringify([["Bin", "warehouse", "=", warehouse]]),
+          limit_page_length: 10000,
+        }
+      }).then(r => r.data.data || []) : Promise.resolve([]),
     ]);
 
     const items = itemsRes.data.data || [];
     const stockMap: Record<string, number> = {};
-    for (const row of stockRes) {
+    for (const row of stockRes as any[]) {
       stockMap[row.item_code] = row.actual_qty || 0;
     }
 
