@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { erpService } from '../services/api';
-import { Search, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Download, X, Warehouse, Printer, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Package, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Download, X, Warehouse, Printer, ArrowUp, ArrowDown, FileSpreadsheet, FileText, ChevronDown, Sheet } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
-import { exportToCsv, printPage } from '../lib/export';
+import { exportToCsv, exportToExcel, exportToPdf, openGoogleSheets, printPage } from '../lib/export';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
 
@@ -110,16 +110,6 @@ export function Stock() {
 
   const hasMoreFiltered = sorted.length > (page + 1) * pageSize;
 
-  const handleExportCsv = () => {
-    exportToCsv(filtered, [
-      { key: 'item_code', header: 'Mã vật tư' },
-      { key: 'item_name', header: 'Tên vật tư' },
-      { key: 'item_group', header: 'Nhóm' },
-      { key: 'warehouse', header: 'Kho' },
-      { key: 'actual_qty', header: 'Tồn thực tế' },
-    ], `ton-kho-${new Date().toISOString().split('T')[0]}`);
-  };
-
   const handleSearch = (value: string) => {
     setSearchInput(value);
     clearTimeout(debounceRef.current);
@@ -186,6 +176,46 @@ export function Stock() {
 
   const totalQty = sorted.reduce((sum, b) => sum + (b.actual_qty || 0), 0);
 
+  // Export menu
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close export menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    if (showExportMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showExportMenu]);
+
+  const STOCK_COLUMNS = [
+    { key: 'item_code', header: 'Mã vật tư' },
+    { key: 'item_name', header: 'Tên vật tư' },
+    { key: 'item_group', header: 'Nhóm' },
+    { key: 'warehouse', header: 'Kho' },
+    { key: 'actual_qty', header: 'Tồn thực tế' },
+  ] as const;
+
+  const handleExportCsv = () => {
+    exportToCsv(filtered, [...STOCK_COLUMNS], `ton-kho-${new Date().toISOString().split('T')[0]}`);
+    setShowExportMenu(false);
+  };
+  const handleExportExcel = () => {
+    exportToExcel(filtered, [...STOCK_COLUMNS], `ton-kho-${new Date().toISOString().split('T')[0]}`);
+    setShowExportMenu(false);
+  };
+  const handleExportGoogleSheets = () => {
+    openGoogleSheets(filtered, [...STOCK_COLUMNS], `ton-kho-${new Date().toISOString().split('T')[0]}`);
+    setShowExportMenu(false);
+  };
+  const handleExportPdf = () => {
+    exportToPdf(filtered, [...STOCK_COLUMNS], `Báo cáo tồn kho`, { title: 'BÁO CÁO TỒN KHO', orientation: 'landscape' });
+    setShowExportMenu(false);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -199,14 +229,60 @@ export function Stock() {
         <div className="flex items-center gap-2">
           {sorted.length > 0 && (
             <>
-              <button onClick={handleExportCsv} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
-                <Download className="w-3.5 h-3.5" />
-                Xuất CSV
-              </button>
-              <button onClick={printPage} className="btn-ghost !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
-                <Printer className="w-3.5 h-3.5" />
-                In
-              </button>
+              {/* Export dropdown */}
+              <div className="relative" ref={exportMenuRef}>
+                <button
+                  onClick={() => setShowExportMenu(v => !v)}
+                  className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Xuất file
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 min-w-[180px] animate-scale-in">
+                    <button
+                      onClick={handleExportCsv}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <FileText className="w-4 h-4 text-gray-400" />
+                      <span>CSV</span>
+                      <span className="ml-auto text-[10px] text-gray-400 font-mono">.csv</span>
+                    </button>
+                    <button
+                      onClick={handleExportExcel}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 text-gray-400" />
+                      <span>Excel</span>
+                      <span className="ml-auto text-[10px] text-gray-400 font-mono">.xlsx</span>
+                    </button>
+                    <button
+                      onClick={handleExportGoogleSheets}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <Sheet className="w-4 h-4 text-gray-400" />
+                      <span>Google Sheets</span>
+                    </button>
+                    <button
+                      onClick={handleExportPdf}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <FileText className="w-4 h-4 text-gray-400" />
+                      <span>PDF</span>
+                      <span className="ml-auto text-[10px] text-gray-400 font-mono">.pdf</span>
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button
+                      onClick={() => { printPage(); setShowExportMenu(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <Printer className="w-4 h-4 text-gray-400" />
+                      <span>In</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
