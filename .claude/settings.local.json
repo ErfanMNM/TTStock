@@ -32,7 +32,13 @@
       "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); console.log\\(JSON.stringify\\(d.data,null,2\\)\\)\")",
       "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\); d.data.forEach\\(i=>console.log\\('name:',i.name,'item_name:',i.item_name\\)\\)\")",
       "Bash(node -e \"console.log\\(JSON.stringify\\(JSON.parse\\(require\\('fs'\\).readFileSync\\(0,'utf8'\\)\\), null, 2\\)\\)\")",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(node -e \"const p=require\\('./node_modules/jspdf/package.json'\\); console.log\\('jspdf version:', p.version\\)\")",
+      "Bash(mkdir -p src/lib/fonts)",
+      "Bash(npm search:*)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); console.log\\('version:',d.version,'peerDeps:',JSON.stringify\\(d.peerDependencies\\)\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./node_modules/jspdf-font/package.json'\\), null, 2\\)\\)\")",
+      "Bash(grep -r \"html2canvas\" vite.config.*)"
     ]
   }
 }
