@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const CURRENT_VERSION = 'beta-1.0.695.1031';
+export const APP_VERSION = 'beta-1.0.695.1031';
+
+const CURRENT_VERSION = APP_VERSION;
 
 type Feature = {
   tag?: 'new' | 'improved' | 'fix';

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Server, Package, Info, RefreshCw } from 'lucide-react';
+import { Server, Package, Info, RefreshCw, Github, ExternalLink } from 'lucide-react';
 import { erpService } from '../services/api';
+import { APP_VERSION } from '../components/WhatsNew';
 
 export function Settings() {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ export function Settings() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Kho Tân Tiến</p>
-              <p className="text-xs text-gray-400">TTStock v1.0</p>
+              <p className="text-xs text-gray-400">TTStock</p>
             </div>
           </div>
           <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -89,8 +90,18 @@ export function Settings() {
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-gray-500">Phiên bản</span>
-              <span className="text-xs font-medium text-gray-900">1.0.0</span>
+              <span className="text-xs font-medium text-gray-900">{APP_VERSION}</span>
             </div>
+            <button
+              onClick={() => {
+                localStorage.removeItem('ttstock_whatsnew_version');
+                alert('Đã reset thông báo. Refresh trang để hiện lại popup tính năng mới.');
+              }}
+              className="w-full mt-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-medium transition-colors"
+            >
+              <Info className="w-3 h-3" />
+              Xem lại thông báo cập nhật
+            </button>
           </div>
         </div>
 
@@ -112,7 +123,7 @@ export function Settings() {
       </div>
 
       <div className="text-center animate-slide-up">
-        <p className="text-xs text-gray-300">Kho Tân Tiến • TTStock v1.0</p>
+        <p className="text-xs text-gray-300">Kho Tân Tiến · TTStock {APP_VERSION}</p>
       </div>
     </div>
   );
