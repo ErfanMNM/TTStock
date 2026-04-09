@@ -490,6 +490,20 @@ export const erpService = {
   },
 
   // Stock Entry actions
+  // Delete a draft Stock Entry (docstatus=0 only) — uses REST API DELETE
+  deleteStockEntry: async (name: string) => {
+    const response = await fetch(`/api/resource/Stock Entry/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.exception || data.message || `Lỗi xóa phiếu (${response.status})`);
+    }
+    return response.json();
+  },
+
   submitStockEntry: async (name: string) => {
     // Dùng fetch thuần để kiểm soát hoàn toàn request (form-encoded như ERPNext yêu cầu)
     const formData = new URLSearchParams({ doctype: 'Stock Entry', docname: name });

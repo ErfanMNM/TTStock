@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { erpService } from '../services/api';
-import { ArrowLeft, CheckCircle, Clock, Ban, Package, Warehouse, Calendar, FileText, MapPin, Printer, Loader2, User } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, Ban, Package, Warehouse, Calendar, FileText, MapPin, Printer, Loader2, User, Trash2 } from 'lucide-react';
 
 export function TransferDetail() {
   const { id } = useParams<{ id: string }>();
@@ -11,6 +11,7 @@ export function TransferDetail() {
   const [companyName, setCompanyName] = useState('CÔNG TY');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [creator, setCreator] = useState<any>(null);
   const [approver, setApprover] = useState<any>(null);
 
@@ -71,13 +72,26 @@ export function TransferDetail() {
     setSubmitting(true);
     try {
       await erpService.submitStockEntry(entry.name);
-      // Reload lại dữ liệu
       const detailData = await erpService.getStockEntryDetails(entry.name);
       setEntry(detailData);
     } catch (err: any) {
       alert(`Lỗi duyệt phiếu: ${err?.response?.data?.message || err?.message || 'Không rõ lỗi'}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!entry?.name || deleting) return;
+    if (!confirm(`Xóa phiếu "${entry.name}"?\nHành động này không thể hoàn tác.`)) return;
+    setDeleting(true);
+    try {
+      await erpService.deleteStockEntry(entry.name);
+      navigate('/transfers');
+    } catch (err: any) {
+      alert(`Lỗi xóa phiếu: ${err?.message || err?.response?.data?.message || 'Không rõ lỗi'}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -121,10 +135,16 @@ export function TransferDetail() {
         </div>
         <div className="flex items-center gap-2">
           {entry.docstatus === 0 && (
-            <button onClick={handleSubmit} disabled={submitting} className="btn-primary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
-              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-              {submitting ? 'Đang duyệt...' : 'Duyệt phiếu'}
-            </button>
+            <>
+              <button onClick={handleDelete} disabled={deleting} className="btn-ghost !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5 text-red-500 hover:!bg-red-50">
+                {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                {deleting ? 'Đang xóa...' : 'Xóa phiếu'}
+              </button>
+              <button onClick={handleSubmit} disabled={submitting} className="btn-primary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                {submitting ? 'Đang duyệt...' : 'Duyệt phiếu'}
+              </button>
+            </>
           )}
           <button onClick={() => window.print()} className="btn-secondary !rounded-xl !px-3 !py-2 !text-xs flex items-center gap-1.5">
             <Printer className="w-3.5 h-3.5" />

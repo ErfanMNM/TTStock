@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, Link, useLocation } from 'react-router-do
 import { Home, Package, Warehouse, ArrowLeftRight, User, Menu, LogOut, X, Settings, ClipboardList, FileText, Truck, PackageSearch, ListTodo, Scale, BarChart3, Folders, Tag, Ruler, Hash, Layers, BookOpen, Wallet, TrendingUp, Clock, MapPin, AlertTriangle, Settings2, Building2, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { erpService } from '../services/api';
+import { WhatsNew } from './WhatsNew';
 
 type NavItem = { name: string; path: string; icon: React.ComponentType<{ className?: string }> };
 type NavGroupColor = 'blue' | 'emerald' | 'violet' | 'amber' | 'slate';
@@ -362,6 +363,9 @@ export function Layout() {
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
+
+      {/* What's New notification */}
+      <WhatsNew />
     </div>
   );
 }

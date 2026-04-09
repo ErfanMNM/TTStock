@@ -22,6 +22,7 @@ type TransferItem = {
   item_group?: string;
   stock_uom?: string;
   image?: string;
+  basic_rate?: number;
 };
 
 export function NewTransfer() {
@@ -55,6 +56,9 @@ export function NewTransfer() {
     items: [{ item_code: '', qty: 1 }],
   });
 
+  const [stockBalances, setStockBalances] = useState<Record<string, number>>({});
+  const [itemRates, setItemRates] = useState<Record<string, number>>({});
+
   const fetchItems = async (size = 1000) => {
     try {
       return await erpService.getItems(size, 0, '');
@@ -64,19 +68,38 @@ export function NewTransfer() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [whs, itms] = await Promise.all([
+        const [whs, itms, bins] = await Promise.all([
           erpService.getWarehouses(),
           fetchItems(),
+          erpService.getStockBalance(),
         ]);
         setWarehouses(whs.filter((w: any) => !w.is_group));
         setAllItems(itms);
+
+        // Aggregate actual_qty across all warehouses per item
+        const map: Record<string, number> = {};
+        for (const bin of bins) {
+          if (bin.item_code) {
+            map[bin.item_code] = (map[bin.item_code] || 0) + (bin.actual_qty || 0);
+          }
+        }
+        setStockBalances(map);
+
+        // Also pre-load valuation rates from bins
+        const ratesMap: Record<string, number> = {};
+        for (const bin of bins) {
+          if (bin.item_code && !ratesMap[bin.item_code] && bin.valuation_rate) {
+            ratesMap[bin.item_code] = bin.valuation_rate;
+          }
+        }
+        setItemRates(ratesMap);
 
         // Auto-add item from URL param
         const prefilledCode = searchParams.get('item_code');
         if (prefilledCode) {
           setFormData(prev => ({
             ...prev,
-            items: [{ item_code: prefilledCode, qty: 1 }],
+            items: [{ item_code: prefilledCode, qty: 1, basic_rate: ratesMap[prefilledCode] }],
           }));
         }
       } catch { setError('Không thể tải dữ liệu.'); }
@@ -84,6 +107,7 @@ export function NewTransfer() {
     };
     loadData();
   }, []);
+
 
   // Search-filtered items for picker
   const filteredPickerItems = useMemo(() => {
@@ -160,6 +184,7 @@ export function NewTransfer() {
           item_group: itemData.item_group,
           stock_uom: itemData.stock_uom,
           image: itemData.image,
+          basic_rate: itemRates[item_code] ?? prev.items[index].basic_rate,
         };
         return { ...prev, items: newItems };
       });
@@ -184,8 +209,8 @@ export function NewTransfer() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     setLoading(true);
     setError('');
 
@@ -208,6 +233,7 @@ export function NewTransfer() {
         items: validItems.map((item) => ({
           item_code: item.item_code,
           qty: item.qty,
+          basic_rate: item.basic_rate || itemRates[item.item_code] || 0,
           s_warehouse: isReceipt ? undefined : (formData.from_warehouse || undefined),
           t_warehouse: isIssue ? undefined : (formData.to_warehouse || undefined),
           allow_zero_valuation_rate: formData.allow_zero_valuation ? 1 : 0,
@@ -215,8 +241,7 @@ export function NewTransfer() {
       };
 
       const result = await erpService.createStockEntry(payload);
-      await erpService.submitStockEntry(result.name);
-      navigate('/transfers');
+      navigate(`/transfers/${encodeURIComponent(result.name)}`);
     } catch (err: any) {
       const data = err.response?.data;
       const msg = data?.message;
@@ -232,7 +257,6 @@ export function NewTransfer() {
       } else {
         setError(data?.message?.exc?.[0] || 'Không thể tạo phiếu nhập xuất.');
       }
-    } finally {
       setLoading(false);
     }
   };
@@ -371,6 +395,11 @@ export function NewTransfer() {
                     <th className="text-left hidden lg:table-cell">Nhóm</th>
                     <th className="text-center">SL</th>
                     <th className="text-center hidden lg:table-cell">ĐVT</th>
+                    <th className="text-center" title={isReceipt ? 'Tồn kho tại kho đích' : 'Tồn kho tại kho nguồn'}>
+                      <span className="hidden lg:inline">Tồn</span>
+                      <span className="lg:hidden">Tồn kho</span>
+                    </th>
+                    <th className="text-center hidden lg:table-cell">Đơn giá</th>
                     <th className="w-24"></th>
                   </tr>
                 </thead>
@@ -430,6 +459,29 @@ export function NewTransfer() {
                         </td>
                         <td className="hidden lg:table-cell">
                           <span className="chip chip-green !text-xs">{row.stock_uom || matched?.stock_uom || '—'}</span>
+                        </td>
+                        <td className="text-center">
+                          <span
+                            className={cn(
+                              "font-semibold text-xs",
+                              (stockBalances[row.item_code] ?? 0) > 0 ? "text-green-600" : "text-gray-400"
+                            )}
+                            title={row.item_code ? `Tồn kho ${row.item_code}` : undefined}
+                          >
+                            {row.item_code ? (stockBalances[row.item_code] ?? 0).toLocaleString('vi-VN') : '—'}
+                          </span>
+                        </td>
+                        <td className="hidden lg:table-cell w-32">
+                          <input
+                            type="number"
+                            min="0"
+                            step="100"
+                            value={row.basic_rate ?? itemRates[row.item_code] ?? ''}
+                            onChange={(e) => handleItemChange(idx, 'basic_rate', parseFloat(e.target.value) || 0)}
+                            className="input-field !rounded-lg !text-xs !py-1.5 !text-right !w-28"
+                            placeholder="0"
+                            disabled={!row.item_code}
+                          />
                         </td>
                         <td>
                           <div className="flex items-center gap-1">
@@ -548,6 +600,12 @@ export function NewTransfer() {
                             <p className="text-sm font-semibold text-gray-900 truncate">{item.item_name || item.name}</p>
                             <p className="text-xs text-gray-400 font-mono">{item.name} · {item.item_group}</p>
                           </div>
+                          <span className={cn(
+                              "text-xs font-semibold flex-shrink-0",
+                              (stockBalances[item.name] ?? 0) > 0 ? "text-green-600" : "text-gray-400"
+                            )}>
+                            {(stockBalances[item.name] ?? 0).toLocaleString('vi-VN')}
+                          </span>
                           {alreadyAdded && (
                             <span className="text-xs text-blue-500 font-medium flex-shrink-0">Đã thêm</span>
                           )}
@@ -698,6 +756,7 @@ export function NewTransfer() {
           <Link to="/transfers" className="btn-secondary flex-1 !rounded-xl !py-3">Hủy</Link>
           <button
             type="submit"
+            onClick={handleSubmit}
             disabled={loading || validCount === 0}
             className="btn-primary flex-1 !rounded-xl !py-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -712,7 +771,7 @@ export function NewTransfer() {
             ) : (
               <>
                 <Save className="w-4 h-4 mr-1.5" />
-                Lưu & Duyệt
+                Lưu & chuyển
               </>
             )}
           </button>
