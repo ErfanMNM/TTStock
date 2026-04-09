@@ -4,7 +4,7 @@ import { erpService } from '../services/api';
 import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, ArrowDownLeft, ArrowUpRight,
   ArrowLeftRight, AlertCircle, Search, X, ExternalLink, Package,
-  ChevronLeft, ChevronRight, Image as ImageIcon
+  ChevronLeft, ChevronRight, Image as ImageIcon, Info
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -23,6 +23,8 @@ type TransferItem = {
   stock_uom?: string;
   image?: string;
   basic_rate?: number;
+  s_warehouse?: string;
+  t_warehouse?: string;
 };
 
 export function NewTransfer() {
@@ -57,7 +59,9 @@ export function NewTransfer() {
   });
 
   const [stockBalances, setStockBalances] = useState<Record<string, number>>({});
+  const [stockByWarehouse, setStockByWarehouse] = useState<Record<string, Record<string, number>>>({});
   const [itemRates, setItemRates] = useState<Record<string, number>>({});
+  const [stockInfo, setStockInfo] = useState<{ code: string; x: number; y: number } | null>(null);
 
   const fetchItems = async (size = 1000) => {
     try {
@@ -78,12 +82,17 @@ export function NewTransfer() {
 
         // Aggregate actual_qty across all warehouses per item
         const map: Record<string, number> = {};
+        // stockByWarehouse: item_code -> warehouse -> qty
+        const byWh: Record<string, Record<string, number>> = {};
         for (const bin of bins) {
-          if (bin.item_code) {
-            map[bin.item_code] = (map[bin.item_code] || 0) + (bin.actual_qty || 0);
+          if (bin.item_code && bin.actual_qty) {
+            map[bin.item_code] = (map[bin.item_code] || 0) + bin.actual_qty;
+            if (!byWh[bin.item_code]) byWh[bin.item_code] = {};
+            byWh[bin.item_code][bin.warehouse] = (byWh[bin.item_code][bin.warehouse] || 0) + bin.actual_qty;
           }
         }
         setStockBalances(map);
+        setStockByWarehouse(byWh);
 
         // Also pre-load valuation rates from bins
         const ratesMap: Record<string, number> = {};
@@ -234,8 +243,8 @@ export function NewTransfer() {
           item_code: item.item_code,
           qty: item.qty,
           basic_rate: item.basic_rate || itemRates[item.item_code] || 0,
-          s_warehouse: isReceipt ? undefined : (formData.from_warehouse || undefined),
-          t_warehouse: isIssue ? undefined : (formData.to_warehouse || undefined),
+          s_warehouse: isReceipt ? undefined : (item.s_warehouse || formData.from_warehouse || undefined),
+          t_warehouse: isIssue ? undefined : (item.t_warehouse || formData.to_warehouse || undefined),
           allow_zero_valuation_rate: formData.allow_zero_valuation ? 1 : 0,
         })),
       };
@@ -399,6 +408,12 @@ export function NewTransfer() {
                       <span className="hidden lg:inline">Tồn</span>
                       <span className="lg:hidden">Tồn kho</span>
                     </th>
+                    {!isReceipt && (
+                      <th className="text-left hidden lg:table-cell min-w-[160px]">Kho nguồn</th>
+                    )}
+                    {!isIssue && (
+                      <th className="text-left hidden lg:table-cell min-w-[160px]">Kho đích</th>
+                    )}
                     <th className="text-center hidden lg:table-cell">Đơn giá</th>
                     <th className="w-24"></th>
                   </tr>
@@ -461,16 +476,65 @@ export function NewTransfer() {
                           <span className="chip chip-green !text-xs">{row.stock_uom || matched?.stock_uom || '—'}</span>
                         </td>
                         <td className="text-center">
-                          <span
-                            className={cn(
-                              "font-semibold text-xs",
-                              (stockBalances[row.item_code] ?? 0) > 0 ? "text-green-600" : "text-gray-400"
-                            )}
-                            title={row.item_code ? `Tồn kho ${row.item_code}` : undefined}
-                          >
-                            {row.item_code ? (stockBalances[row.item_code] ?? 0).toLocaleString('vi-VN') : '—'}
-                          </span>
+                          {row.item_code ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <span
+                                className={cn(
+                                  "font-semibold text-xs",
+                                  (stockBalances[row.item_code] ?? 0) > 0 ? "text-green-600" : "text-gray-400"
+                                )}
+                              >
+                                {(stockBalances[row.item_code] ?? 0).toLocaleString('vi-VN')}
+                              </span>
+                              {stockByWarehouse[row.item_code] && Object.keys(stockByWarehouse[row.item_code]).length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                    setStockInfo({ code: row.item_code, x: rect.left, y: rect.bottom });
+                                  }}
+                                  className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                                  title="Xem tồn theo kho"
+                                >
+                                  <Info className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
                         </td>
+                        {!isReceipt && (
+                          <td className="hidden lg:table-cell">
+                            <div className="relative">
+                              <select
+                                value={row.s_warehouse || ''}
+                                onChange={(e) => handleItemChange(idx, 's_warehouse', e.target.value)}
+                                className="w-full !rounded-lg !bg-gray-50 !text-xs !py-1.5 !pl-2 !pr-6 appearance-none cursor-pointer max-w-[160px]"
+                              >
+                                <option value="">Mặc định</option>
+                                {warehouses.map(w => <option key={w.name} value={w.name}>{w.warehouse_name}</option>)}
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                            </div>
+                          </td>
+                        )}
+                        {!isIssue && (
+                          <td className="hidden lg:table-cell">
+                            <div className="relative">
+                              <select
+                                value={row.t_warehouse || ''}
+                                onChange={(e) => handleItemChange(idx, 't_warehouse', e.target.value)}
+                                className="w-full !rounded-lg !bg-gray-50 !text-xs !py-1.5 !pl-2 !pr-6 appearance-none cursor-pointer max-w-[160px]"
+                              >
+                                <option value="">Mặc định</option>
+                                {warehouses.map(w => <option key={w.name} value={w.name}>{w.warehouse_name}</option>)}
+                              </select>
+                              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
+                            </div>
+                          </td>
+                        )}
                         <td className="hidden lg:table-cell w-32">
                           <input
                             type="number"
@@ -518,7 +582,7 @@ export function NewTransfer() {
             <div className="p-3 border-t border-gray-50">
               <button
                 type="button"
-                onClick={handleAddItem}
+                onClick={() => { setShowPicker(true); setPickerPage(0); }}
                 className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-2 rounded-xl transition-colors w-full justify-center"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -777,6 +841,36 @@ export function NewTransfer() {
           </button>
         </div>
       </form>
+
+      {/* Stock info tooltip */}
+      {stockInfo && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setStockInfo(null)} />
+          <div
+            className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 p-3 min-w-[200px] max-w-[280px] animate-scale-in"
+            style={{ left: Math.min(stockInfo.x, window.innerWidth - 300), top: stockInfo.y + 4 }}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold text-gray-700">Tồn theo kho</p>
+              <button onClick={() => setStockInfo(null)} className="w-5 h-5 flex items-center justify-center rounded hover:bg-gray-100">
+                <X className="w-3 h-3 text-gray-400" />
+              </button>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(stockByWarehouse[stockInfo.code] || {})
+                .sort((a, b) => b[1] - a[1])
+                .map(([wh, qty]) => (
+                  <div key={wh} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600 truncate flex-1 pr-2" title={wh}>{wh}</span>
+                    <span className={cn("font-semibold flex-shrink-0", qty > 0 ? "text-green-600" : "text-gray-400")}>
+                      {qty.toLocaleString('vi-VN')}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

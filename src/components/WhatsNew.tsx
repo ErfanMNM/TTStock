@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const CURRENT_VERSION = 'beta-1.0.694.1027';
+const CURRENT_VERSION = 'beta-1.0.695.1031';
 
 type Feature = {
   tag?: 'new' | 'improved' | 'fix';
@@ -11,11 +11,14 @@ type Feature = {
 
 const features: Feature[] = [
   { tag: 'new', text: 'Thêm cột Tồn kho và Đơn giá (Basic Rate) vào bảng vật tư khi tạo phiếu nhập xuất' },
-  { tag: 'new', text: 'Tách Lưu & Duyệt thành 2 bước — Lưu chuyển thẳng sang trang chi tiết phiếu' },
+  { tag: 'new', text: 'Kho nguồn / kho đích cho từng sản phẩm riêng biệt trong phiếu điều chuyển' },
+  { tag: 'new', text: 'Nút info (i) ở cột Tồn — nhấn xem chi tiết Tên kho - SL tồn theo từng kho' },
   { tag: 'new', text: 'Thêm nút Xóa phiếu nháp trên trang chi tiết phiếu' },
   { tag: 'improved', text: 'Tối ưu tải tồn kho — gộp API calls, không còn race condition' },
+  { tag: 'improved', text: 'Đổi port dev server sang 3001' },
   { tag: 'fix', text: 'Sửa lỗi cột Tồn kho không hiển thị trên màn hình lớn' },
   { tag: 'fix', text: 'Sửa lỗi font tiếng Việt khi xuất PDF bằng html2canvas' },
+  { tag: 'fix', text: 'Sửa lỗi nút "+ Thêm dòng" tạo hàng rỗng' },
 ];
 
 const tagStyle: Record<NonNullable<Feature['tag']>, string> = {
