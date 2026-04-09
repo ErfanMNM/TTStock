@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export const APP_VERSION = 'beta-1.0.695.1031';
+export const APP_VERSION = 'beta-1.0.695.1141';
 
 const CURRENT_VERSION = APP_VERSION;
 
@@ -12,11 +12,11 @@ type Feature = {
 };
 
 const features: Feature[] = [
-  { tag: 'new', text: 'Thêm cột Tồn kho và Đơn giá (Basic Rate) vào bảng vật tư khi tạo phiếu nhập xuất' },
+  { tag: 'new', text: 'Trang Tổng Quan với biểu đồ tương tác: Tồn kho theo kho, Phân bổ theo nhóm, Top vật tư tồn cao, Phiếu nhập xuất gần đây' },
   { tag: 'new', text: 'Kho nguồn / kho đích cho từng sản phẩm riêng biệt trong phiếu điều chuyển' },
   { tag: 'new', text: 'Nút info (i) ở cột Tồn — nhấn xem chi tiết Tên kho - SL tồn theo từng kho' },
   { tag: 'new', text: 'Thêm nút Xóa phiếu nháp trên trang chi tiết phiếu' },
-  { tag: 'improved', text: 'Tối ưu tải tồn kho — gộp API calls, không còn race condition' },
+  { tag: 'new', text: 'Thêm cột Tồn kho và Đơn giá (Basic Rate) vào bảng vật tư khi tạo phiếu' },
   { tag: 'improved', text: 'Đổi port dev server sang 3001' },
   { tag: 'fix', text: 'Sửa lỗi cột Tồn kho không hiển thị trên màn hình lớn' },
   { tag: 'fix', text: 'Sửa lỗi font tiếng Việt khi xuất PDF bằng html2canvas' },
